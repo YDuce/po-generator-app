@@ -10,7 +10,7 @@ from config import config
 from models import db, login_manager
 from models.inventory import Batch, InventoryItem
 from models.allocation import Allocation
-from api import register_blueprints
+from api import bp as api_bp
 
 def create_app(config_name='default'):
     app = Flask(__name__)
@@ -41,35 +41,20 @@ def create_app(config_name='default'):
     )
     app.register_blueprint(google_bp, url_prefix='/login')
     
-    # Routes
+    # User-facing routes
     @app.route('/')
     def index():
         return render_template('index.html')
-    
-    @app.route('/api/upload', methods=['POST'])
+
+    @app.route('/dashboard')
     @login_required
-    def upload_file():
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
-        if file:
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return jsonify({'message': 'File uploaded successfully'}), 200
-    
-    @app.route('/api/status/<job_id>')
+    def dashboard():
+        return render_template('dashboard.html')
+
+    @app.route('/results/<job_id>')
     @login_required
-    def get_status(job_id):
-        # TODO: Implement job status tracking
-        return jsonify({'status': 'pending'})
-    
-    @app.route('/api/results/<job_id>')
-    @login_required
-    def get_results(job_id):
-        # TODO: Implement results retrieval
-        return jsonify({'status': 'complete', 'results': []})
+    def results(job_id):
+        return render_template('results.html', job_id=job_id)
     
     @app.route('/downloads/<filename>')
     @login_required
@@ -86,7 +71,7 @@ def create_app(config_name='default'):
         db.session.rollback()
         return jsonify({'error': 'Internal server error'}), 500
     
-    register_blueprints(app)
+    app.register_blueprint(api_bp)
     
     return app
 
