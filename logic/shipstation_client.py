@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from urllib.parse import urlencode
 import os
 from datetime import datetime
-from connectors.base import ChannelConnector
+from channels.base import ChannelConnector
 
 logger = logging.getLogger(__name__)
 

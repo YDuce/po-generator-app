@@ -1,0 +1,131 @@
+## Overview
+
+This document captures the current architecture, data flow, and ingestion steps for the PO-Generator app, consolidating our recent discussions and refinements.
+
+---
+
+### 1. Core Modules & Responsibilities
+
+* **models/**: ORM definitions
+
+  * Product (sku, title)
+  * Listing (product & channel refs, external\_sku, status, price)
+  * InventoryRecord (listing\_id, quantity, timestamp)
+  * SalesOrder (channel\_id, external\_id, placed\_at, status)
+  * OrderLine (order\_id, listing\_id, qty)
+
+* **logic/**: Business processes
+
+  * `file_parser.py`: parse Excel/CSV → `List[dict]`
+  * `catalog_ingest.py`: upsert Product + Listing
+  * `order_ingest.py`: upsert SalesOrder + OrderLine
+  * `inventory_sync.py`: append InventoryRecord snapshots
+  * `allocator.py`: apply allocation rules
+  * `po_builder.py`: build/export PO files
+  * `ai_helper.py`: optional OpenAI integration
+
+* **api/**: HTTP endpoints (Blueprint `/api`)
+
+  * catalog.py (POST /api/catalog) → catalog ingestion
+  * orders.py (POST /api/orders) → order ingestion
+  * inventory.py (POST /api/inventory) → inventory ingestion
+  * status.py (GET  /api/status/\<job\_id>) → job status
+  * results.py (GET  /api/results/\<job\_id>) → job results
+
+* **app.py**: Application factory, blueprint registration, user-facing routes
+
+---
+
+### 2. Uploads Folder
+
+* **Path**: `po-generator-app/uploads/`
+* **Purpose**: Temporary storage of user-uploaded files before ingestion
+* **Behavior**:
+
+  1. API receives file via `request.files['inventory']`.
+  2. Saves to `uploads/filename.ext`.
+  3. Logic module reads this file, processes it, then ingestion functions commit data to DB.
+  4. Uploaded files may be cleaned up manually or via a periodic job.
+
+---
+
+### 3. Ingestion Flows
+
+#### A. Catalog Ingestion (`/api/catalog`)
+
+1. **POST** form-data: `inventory=@file.xlsx`, `channel=CHANNEL_NAME`
+2. View function saves file, calls `parse_and_ingest_catalog(file_path, channel)`
+3. `FileParser.parse_catalog()` → validated items list
+4. `ingest_catalog_items(items, channel)` → upsert into `product` and `listing`
+5. Return JSON `{status: success}` or error
+
+#### B. Order Ingestion (`/api/orders`)
+
+1. **POST** JSON or CSV: orders data, `channel`
+2. View calls `ingest_orders(data, channel)`
+3. Upsert into `sales_order` and `order_line`
+4. Return JSON status
+
+#### C. Inventory Ingestion (`/api/inventory`)
+
+1. **POST** JSON or CSV: listing stock levels, `channel`
+2. View calls `sync_inventory(records, channel)`
+3. Append new `InventoryRecord` for each listing
+4. Return JSON status
+
+---
+
+### 4. Testing Tools: curl vs Postman
+
+* **curl** (CLI): lightweight, scriptable, great for automating tests and CI pipelines.
+* **Postman** (GUI): user-friendly, ideal on Windows without installing curl, supports collections and environment variables.
+
+**Recommendation**:
+
+* Use **Postman** for manual exploratory testing on Windows.
+* Use **curl** in automated test scripts or CI jobs.
+
+---
+
+### 5. Next Steps
+
+1. **Implement & Test** Catalog Ingestion end-to-end:
+
+   * Verify file save
+   * Verify DB upserts
+   * Write pytest for logic and API
+2. **Repeat** for Order and Inventory ingestion.
+3. **Instrument Logging** and job-tracking endpoints for live monitoring.
+4. **Review & Clean** uploaded files (e.g., auto-delete after ingestion).
+
+*Checkpoint reached:* Core ingestion flows defined. Ready to code, verify, and iterate on analysis layer next.
+
+---
+
+### 6. Results & Filtering Endpoints
+
+Instead of creating a new file for every possible result or filter, use **query parameters** and clearly named routes:
+
+* **Single results endpoint with filters:**
+
+  ```http
+  GET /api/results
+    ?type=inventory     # or "orders", "catalog"
+    &product_id=123
+    &channel=woot
+    &date_from=2025-05-01
+    &date_to=2025-05-31
+  ```
+
+* **Dedicated endpoints for common use-cases:**
+
+  * `/api/results/global_inventory` → latest per-SKU totals across channels
+  * `/api/results/channel_performance` → sales vs stock per channel
+
+**Implementation tips:**
+
+1. In `api/results.py`, parse `request.args` for filters.
+2. Route to the appropriate logic function in `logic/` (e.g., `get_global_inventory()`, `get_channel_performance()`).
+3. Return JSON with consistent structure `{ data: [...], meta: { total: X } }`.
+
+This keeps your API surface small, intuitive, and flexible for future expansions.

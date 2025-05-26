@@ -1,24 +1,23 @@
 import os
-from flask import Flask, render_template, request, jsonify, send_from_directory
+import logging
+from flask import Flask, render_template, request, jsonify, send_from_directory, g
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_login import LoginManager, login_required, current_user
 from werkzeug.utils import secure_filename
-import logging
 from logging.handlers import RotatingFileHandler
 
 from config import config
-from models import db, login_manager
-from models.inventory import Batch, InventoryItem
+from database import SessionLocal
 from models.allocation import Allocation
 from api import bp as api_bp
+# from channels import get_connector  # Uncomment if needed for channel logic
+
+# User model import for user_loader stub (replace with your actual user model)
+# from models.user import User
 
 def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
-    
-    # Initialize extensions
-    db.init_app(app)
-    login_manager.init_app(app)
     
     # Setup logging
     if not app.debug:
@@ -32,7 +31,7 @@ def create_app(config_name='default'):
         app.logger.addHandler(file_handler)
         app.logger.setLevel(logging.INFO)
         app.logger.info('PO Generator startup')
-    
+
     # Setup Google OAuth
     google_bp = make_google_blueprint(
         client_id=app.config['GOOGLE_OAUTH_CLIENT_ID'],
@@ -40,7 +39,31 @@ def create_app(config_name='default'):
         scope=['profile', 'email']
     )
     app.register_blueprint(google_bp, url_prefix='/login')
-    
+
+    # Setup Flask-Login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'google.login'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        # Replace with actual user lookup
+        return None
+
+    @app.before_request
+    def open_session():
+        g.db = SessionLocal()
+
+    @app.teardown_request
+    def close_session(exception=None):
+        db = g.pop('db', None)
+        if db:
+            if exception:
+                db.rollback()
+            else:
+                db.commit()
+            db.close()
+
     # User-facing routes
     @app.route('/')
     def index():
@@ -68,10 +91,13 @@ def create_app(config_name='default'):
     
     @app.errorhandler(500)
     def internal_error(error):
-        db.session.rollback()
+        db = getattr(g, 'db', None)
+        if db:
+            db.rollback()
+        app.logger.exception(error)
         return jsonify({'error': 'Internal server error'}), 500
     
-    app.register_blueprint(api_bp)
+    app.register_blueprint(api_bp, url_prefix='/api')
     
     return app
 

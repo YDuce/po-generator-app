@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_COLUMNS = {'sku', 'title', 'cost', 'external_sku', 'status'}
+REQUIRED_COLUMNS = {'sku', 'title', 'external_sku', 'status', 'price'}
 
 class FileParser:
     def __init__(self, file_path: str):
@@ -31,9 +31,9 @@ class FileParser:
             # Clean and validate data
             df['sku'] = df['sku'].astype(str).str.strip()
             df['title'] = df['title'].astype(str).str.strip()
-            df['cost'] = pd.to_numeric(df['cost'], errors='coerce').fillna(0)
             df['external_sku'] = df['external_sku'].astype(str).str.strip()
             df['status'] = df['status'].astype(str).str.strip().str.lower()
+            df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0)
 
             items = df.to_dict('records')
 
@@ -42,8 +42,8 @@ class FileParser:
                     raise ValueError("SKU cannot be empty")
                 if not item['title']:
                     raise ValueError("Title cannot be empty")
-                if item['cost'] < 0:
-                    raise ValueError(f"Cost cannot be negative for SKU: {item['sku']}")
+                if item['price'] < 0:
+                    raise ValueError(f"Price cannot be negative for SKU: {item['sku']}")
                 if not item['external_sku']:
                     raise ValueError(f"External SKU cannot be empty for SKU: {item['sku']}")
                 if item['status'] not in {'active', 'inactive'}:

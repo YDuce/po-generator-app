@@ -5,7 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from models.base import Base
+from database import Base
 from models import *  # imports all models for autogeneration
 
 # this is the Alembic Config object, which provides
