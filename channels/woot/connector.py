@@ -3,9 +3,8 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from channels.base import ChannelConnector
 from channels.template_mixin import SpreadsheetTemplateProvider
-from models.listing import Listing
-from channels.woot.models import Batch, BatchLine
 from pathlib import Path
+from channels.woot.models import PORF, PORFLine, PO, EventUploader
 
 class WootConnector(ChannelConnector, SpreadsheetTemplateProvider):
     def __init__(self, session: Session):
@@ -19,21 +18,17 @@ class WootConnector(ChannelConnector, SpreadsheetTemplateProvider):
         # Implement Woot-specific inventory fetching logic
         return []
 
-    def create_batch(self, listings: List[Listing], name: str | None = None, **opts):
-        batch = Batch(name=name or f"Woot PO {datetime.utcnow().isoformat()}")
-        for listing in listings:
-            line = BatchLine(listing=listing, quantity=opts.get('quantity', 1))
-            batch.lines.append(line)
-        if self.session:
-            self.session.add(batch)
-            self.session.commit()
-        return batch
-
-    def submit_batch(self, batch: Batch):
-        # Implement Woot-specific batch submission logic (e.g., API call)
-        return {'status': 'submitted', 'batch_id': batch.id}
-
     def list_templates(self):
         return {
             'po': str(Path(__file__).parent / 'templates' / 'po.xlsx'),
-        } 
+        }
+
+    def create_event_uploader(self, porf_id, category, file_path):
+        uploader = EventUploader(porf_id=porf_id, category=category, file_path=file_path)
+        self.session.add(uploader)
+        self.session.commit()
+        return uploader
+
+    def submit_event(self, uploader_id):
+        # Implement event submission logic
+        return {'status': 'submitted', 'uploader_id': uploader_id} 
