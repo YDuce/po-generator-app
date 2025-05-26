@@ -15,11 +15,6 @@ class Listing(Base):
 
     product = relationship("Product", back_populates="listings")
     channel = relationship("Channel", back_populates="listings")
-    inventory_records = relationship("InventoryRecord", back_populates="listing")
 
-    @property
-    def current_quantity(self):
-        if not self.inventory_records:
-            return 0
-        latest = max(self.inventory_records, key=lambda ir: ir.recorded_at)
-        return latest.quantity 
+    # NOTE: InventoryRecord now references products directly; listing-level
+    # inventory snapshots have been deprecated. 

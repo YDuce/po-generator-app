@@ -1,0 +1,3 @@
+[flake8]
+exclude = alembic/versions/*
+ignore = W291,W292,W293,E302,E501,F401 

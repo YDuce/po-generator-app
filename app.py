@@ -9,7 +9,10 @@ from logging.handlers import RotatingFileHandler
 from config import config
 from database import SessionLocal
 from models.allocation import Allocation
+# API blueprints
 from api import bp as api_bp
+from api.porf import bp as porf_bp
+from api.export import bp as export_bp
 # from channels import get_connector  # Uncomment if needed for channel logic
 
 # User model import for user_loader stub (replace with your actual user model)
@@ -98,6 +101,8 @@ def create_app(config_name='default'):
         return jsonify({'error': 'Internal server error'}), 500
     
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(porf_bp)
+    app.register_blueprint(export_bp)
     
     return app
 
