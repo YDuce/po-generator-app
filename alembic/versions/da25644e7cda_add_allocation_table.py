@@ -34,10 +34,12 @@ def upgrade() -> None:
     )
     op.drop_table('woot_batch')
     op.drop_table('woot_batch_line')
-    op.alter_column('inventory_record', 'recorded_at',
-               existing_type=sa.DATETIME(),
-               nullable=False,
-               existing_server_default=sa.text('(CURRENT_TIMESTAMP)'))
+    bind = op.get_bind()
+    if bind.dialect.name != "sqlite":
+        op.alter_column('inventory_record', 'recorded_at',
+                   existing_type=sa.DATETIME(),
+                   nullable=False,
+                   existing_server_default=sa.text('(CURRENT_TIMESTAMP)'))
     op.add_column('listing', sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False))
     op.add_column('listing', sa.Column('cost', sa.Numeric(precision=10, scale=2), nullable=True))
     op.alter_column('listing', 'external_sku',

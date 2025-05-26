@@ -1,1 +1,0 @@
-"""All connector modules must implement connectors.base.ChannelConnector.""" 
