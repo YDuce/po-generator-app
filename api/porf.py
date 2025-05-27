@@ -6,11 +6,10 @@ from pathlib import Path
 from database import SessionLocal
 from models import PORF, PORFLine, Product
 from logic.porf_builder import draft_porf_xlsx
+from api import api_bp as bp
 
-bp = Blueprint("porf", __name__, url_prefix="/api/porf")
 
-
-@bp.post("/upload")
+@bp.route('/porf/upload', methods=['POST'])
 def upload_porf():
     """Handle PORF+PO upload according to blueprint spec.
 

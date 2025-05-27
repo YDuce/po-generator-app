@@ -2,7 +2,7 @@ from flask import request, jsonify, g
 from werkzeug.utils import secure_filename
 import os
 from logic.catalog_ingest import parse_and_ingest_catalog
-from . import bp
+from api import api_bp as bp
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ def upload_catalog():
         return jsonify({'error': 'File and channel are required'}), 400
 
     inventory = request.files['inventory']
-    channel   = request.form['channel']
+    channel = request.form['channel']
 
     if inventory.filename == '':
         logger.warning("No selected file in catalog upload")

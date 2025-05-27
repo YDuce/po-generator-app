@@ -1,13 +1,10 @@
-from .base import *
-from .product import *
-from .porf import *
-from .porf_line import *
-from .po import *
-from .inventory_record import *
-from .channel import *
-# Import Woot-specific models for event uploader support
-try:
-    import channels.woot.models  # noqa: F401
-except ImportError:
-    pass
+from models.base import Base, JSONB
+from models.product import Product
+from models.porf import PORF
+from models.porf_line import PORFLine
+from models.po import PO
+from models.inventory_record import InventoryRecord
+from models.channel import Channel
+from models.user import User
+from models.oauth_token import OAuthToken
 from channels.woot.models import EventUploader

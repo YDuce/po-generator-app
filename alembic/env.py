@@ -6,7 +6,11 @@ from sqlalchemy import pool
 from alembic import context
 
 from database import Base
-from models import *  # imports all models for autogeneration
+# from models import *  # REMOVE this star import for flake8 compliance
+# If explicit models are needed for autogeneration, import them here
+# from models.product import Product
+# from models.porf import PORF
+# ...
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

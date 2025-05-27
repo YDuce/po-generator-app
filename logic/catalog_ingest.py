@@ -17,6 +17,7 @@ def parse_and_ingest_catalog(session, file_path: str, channel_name: str):
     # For now, just log and return
     return
 
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 3:

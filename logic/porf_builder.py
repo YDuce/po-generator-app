@@ -9,7 +9,8 @@ from pathlib import Path
 from datetime import datetime
 
 import openpyxl  # Required dependency per blueprint, assumed installed
-from channels.woot.models import POStatus
+from channels.woot.models import POStatus, PORFStatus
+from models.po import PO
 from logic.utils import add_months
 
 
@@ -40,6 +41,7 @@ def draft_porf_xlsx(rows: List[Dict], output_path: Path) -> Path:
     wb.save(output_path)
     return output_path
 
+
 def build_draft(porf, rows: List[Dict], output_path: Path):
     """Build a draft PORF spreadsheet.
 
@@ -60,7 +62,7 @@ def build_draft(porf, rows: List[Dict], output_path: Path):
 
     draft_porf_xlsx(rows, output_path)
     porf.status = PORFStatus.approved
-    po = PO(porf_id=porf.id, status=POStatus.open, expires_at=add_months(datetime.utcnow(), 7))
+    # po = PO(porf_id=porf.id, status=POStatus.open, expires_at=add_months(datetime.utcnow(), 7))
     # ...
 
     return output_path 

@@ -6,9 +6,7 @@ from logging.handlers import RotatingFileHandler
 from config import config
 from database import SessionLocal
 # API blueprints
-from api import bp as api_bp
-from api.porf import bp as porf_bp
-from api.export import bp as export_bp
+from api import init_app as init_api
 
 
 def create_app(config_name='default'):
@@ -64,11 +62,10 @@ def create_app(config_name='default'):
         app.logger.exception(error)
         return jsonify({'error': 'Internal server error'}), 500
 
-    app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(porf_bp)
-    app.register_blueprint(export_bp)
+    init_api(app)
 
     return app
+
 
 if __name__ == '__main__':
     app = create_app()
