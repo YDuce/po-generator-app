@@ -3,3 +3,7 @@
 def suggest_category_and_price(product_attrs):
     # TODO: Implement AI suggestion logic
     return {"category": None, "price": None}
+
+def suggest_category(product) -> str:
+    """Placeholder until AI model integrated."""
+    return "Default"

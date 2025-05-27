@@ -5,6 +5,8 @@ from models.channel import Channel
 from models.porf import PORF
 from models.porf_line import PORFLine
 from typing import List, Dict
+from channels.woot.crud import get_live_porf_lines, create_or_get_today_draft_porf
+from channels.woot.models import PORFStatus
 
 logger = logging.getLogger(__name__)
 
