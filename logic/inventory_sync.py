@@ -1,5 +1,10 @@
 import logging
 from typing import List, Dict
+import os
+import requests
+from models import OAuthToken, InventoryRecord
+from database import SessionLocal
+from datetime import datetime
 
 from models.channel import Channel
 from models.product import Product
@@ -47,4 +52,28 @@ def sync_inventory(session, records: List[Dict], channel_name: str):
         session.add(inv)
 
     session.commit()
-    logger.info("Inventory sync complete for channel %s with %d records", channel_name, len(records)) 
+    logger.info("Inventory sync complete for channel %s with %d records", channel_name, len(records))
+
+
+def poll(user_id):
+    db = SessionLocal()
+    token = db.query(OAuthToken).filter_by(user_id=user_id, provider='shipstation').first()
+    api_key = token.access_token if token else os.getenv('SHIPSTATION_API_KEY')
+    api_secret = token.refresh_token if token else os.getenv('SHIPSTATION_API_SECRET')
+    if not api_key or not api_secret:
+        return []
+    url = 'https://ssapi.shipstation.com/shipments?createDateStart=2024-01-01'
+    auth = (api_key, api_secret)
+    resp = requests.get(url, auth=auth)
+    shipments = resp.json().get('shipments', [])
+    for shipment in shipments:
+        for item in shipment.get('items', []):
+            rec = InventoryRecord(
+                product_id=item['productId'],
+                channel_id=1,
+                delta=-item['quantity'],
+                recorded_at=datetime.utcnow()
+            )
+            db.add(rec)
+    db.commit()
+    return shipments 

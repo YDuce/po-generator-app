@@ -1,6 +1,17 @@
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from logic.email_dropbox import poll as gmail_poll
+from logic.inventory_sync import poll as shipstation_poll
 
-from tasks.scheduler import scheduler
+scheduler = BackgroundScheduler()
+
+# Gmail Dropbox poller every 15 min
+scheduler.add_job(lambda: gmail_poll(user_id=1), 'interval', minutes=15)
+
+# ShipStation sync hourly
+scheduler.add_job(lambda: shipstation_poll(user_id=1), 'interval', hours=1)
+
+scheduler.start()
 
 
 @scheduler.scheduled_job("interval", minutes=15)
