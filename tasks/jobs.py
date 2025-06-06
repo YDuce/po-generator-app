@@ -6,10 +6,10 @@ from logic.inventory_sync import poll as shipstation_poll
 scheduler = BackgroundScheduler()
 
 # Gmail Dropbox poller every 15 min
-scheduler.add_job(lambda: gmail_poll(user_id=1), 'interval', minutes=15)
+scheduler.add_job(lambda: gmail_poll(user_id=1), "interval", minutes=15)
 
 # ShipStation sync hourly
-scheduler.add_job(lambda: shipstation_poll(user_id=1), 'interval', hours=1)
+scheduler.add_job(lambda: shipstation_poll(user_id=1), "interval", hours=1)
 
 scheduler.start()
 
@@ -29,4 +29,4 @@ def po_expiry_sweep():
 @scheduler.scheduled_job("interval", hours=1)
 def sync_shipstation():
     # TODO: call ShipStation API, create inventory_record deltas
-    print(f"[{datetime.utcnow()}] sync_shipstation stub running") 
+    print(f"[{datetime.utcnow()}] sync_shipstation stub running")

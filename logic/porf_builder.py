@@ -65,4 +65,4 @@ def build_draft(porf, rows: List[Dict], output_path: Path):
     # po = PO(porf_id=porf.id, status=POStatus.open, expires_at=add_months(datetime.utcnow(), 7))
     # ...
 
-    return output_path 
+    return output_path

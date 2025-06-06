@@ -2,6 +2,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 import csv
 
+
 class SpreadsheetBuilder:
     def __init__(self, template_path: Path):
         self.template_path = template_path
@@ -20,8 +21,8 @@ class SpreadsheetBuilder:
         if not rows:
             raise ValueError("No data to write")
         headers = rows[0].keys()
-        with open(output_path, 'w', newline='') as f:
+        with open(output_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=headers)
             writer.writeheader()
             writer.writerows(rows)
-        return output_path 
+        return output_path

@@ -9,7 +9,7 @@ from logic.porf_builder import draft_porf_xlsx
 from api import api_bp as bp
 
 
-@bp.route('/porf/upload', methods=['POST'])
+@bp.route("/porf/upload", methods=["POST"])
 def upload_porf():
     """Handle PORF+PO upload according to blueprint spec.
 
@@ -48,4 +48,4 @@ def upload_porf():
     db.add(line)
     db.commit()
 
-    return jsonify({"message": "PORF uploaded", "porf_id": porf.id}), 201 
+    return jsonify({"message": "PORF uploaded", "porf_id": porf.id}), 201

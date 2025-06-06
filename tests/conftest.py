@@ -44,7 +44,9 @@ def db_session(engine):
 # Flask app + client that use the same in-memory DB
 # ------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-spec = importlib.util.spec_from_file_location("app", str(Path(__file__).resolve().parent.parent / "app.py"))
+spec = importlib.util.spec_from_file_location(
+    "app", str(Path(__file__).resolve().parent.parent / "app.py")
+)
 app_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(app_module)
 create_app = app_module.create_app

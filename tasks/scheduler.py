@@ -7,4 +7,4 @@ autostart = True  # Toggle for unit tests
 scheduler = BackgroundScheduler()
 
 if autostart:
-    scheduler.start() 
+    scheduler.start()

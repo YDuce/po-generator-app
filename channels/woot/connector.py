@@ -9,6 +9,7 @@ from models.porf_line import PORFLine
 from models.po import PO
 from channels.woot.models import EventUploader
 
+
 class WootConnector(ChannelConnector, SpreadsheetTemplateProvider):
     def __init__(self, session: Session):
         self.session = session
@@ -23,11 +24,13 @@ class WootConnector(ChannelConnector, SpreadsheetTemplateProvider):
 
     def list_templates(self):
         return {
-            'po': str(Path(__file__).parent / 'templates' / 'po.xlsx'),
+            "po": str(Path(__file__).parent / "templates" / "po.xlsx"),
         }
 
     def create_event_uploader(self, porf_id, category, file_path):
-        uploader = EventUploader(porf_id=porf_id, category=category, file_path=file_path)
+        uploader = EventUploader(
+            porf_id=porf_id, category=category, file_path=file_path
+        )
         self.session.add(uploader)
         self.session.commit()
         return uploader
@@ -37,4 +40,4 @@ class WootConnector(ChannelConnector, SpreadsheetTemplateProvider):
         if uploader:
             uploader.uploaded_at = datetime.utcnow()
             self.session.commit()
-        return {'status': 'submitted', 'uploader_id': uploader_id} 
+        return {"status": "submitted", "uploader_id": uploader_id}

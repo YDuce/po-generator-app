@@ -19,4 +19,4 @@ class InventoryRecord(Base):
     delta = Column(Integer, nullable=False)
 
     source = Column(String, nullable=True)
-    recorded_at = Column(DateTime, server_default=func.now(), nullable=False) 
+    recorded_at = Column(DateTime, server_default=func.now(), nullable=False)

@@ -3,14 +3,17 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, func
 from database import Base
 import enum
 
+
 class PORFStatus(enum.Enum):
     draft = "draft"
     approved = "approved"
     expired = "expired"
 
+
 class POStatus(enum.Enum):
     open = "open"
     expired = "expired"
+
 
 class EventUploader(Base):
     __tablename__ = "woot_event_uploader"
@@ -19,4 +22,4 @@ class EventUploader(Base):
     category = Column(String, nullable=True)
     file_path = Column(String, nullable=True)
     uploaded_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False) 
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)

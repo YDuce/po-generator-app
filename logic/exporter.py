@@ -4,6 +4,7 @@ from tempfile import NamedTemporaryFile
 from channels import get_connector
 from logic.spreadsheet_builder import SpreadsheetBuilder
 
+
 def export_document(channel: str, template_key: str, context=None) -> Path:
     """Create a spreadsheet for *channel* using *template_key*.
 
@@ -44,4 +45,4 @@ def export_document(channel: str, template_key: str, context=None) -> Path:
     if tpl_path.suffix == ".csv":
         return builder.write_csv(rows, tmp_path)
 
-    return builder.write_excel(rows, tmp_path) 
+    return builder.write_excel(rows, tmp_path)
