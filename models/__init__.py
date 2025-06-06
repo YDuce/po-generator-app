@@ -1,7 +1,7 @@
 from models.base import Base, JSONB
 from models.product import Product
 from models.porf import PORF
-from models.porf_line import PORFLine
+from models.woot_porf_line import WootPorfLine
 from models.po import PO
 from models.inventory_record import InventoryRecord
 from models.channel import Channel
