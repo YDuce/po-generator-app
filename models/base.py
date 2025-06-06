@@ -26,4 +26,4 @@ class JSONB(TypeDecorator):
         return value
 
 
-__all__ = ["Base", "JSONB"] 
+__all__ = ["Base", "JSONB"]
