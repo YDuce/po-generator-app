@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy.orm import Session
 from channels.woot.models import PORFStatus, POStatus
-from models.porf_line import PORFLine
+from models.woot_porf_line import WootPorfLine
 from models.porf import PORF
 from models.po import PO
 
@@ -9,14 +9,14 @@ from models.po import PO
 def get_live_porf_lines(db: Session, product_id: int):
     now = datetime.utcnow()
     return (
-        db.query(PORFLine)
+        db.query(WootPorfLine)
         .join(PORF)
         .join(PO)
         .filter(
             PORF.status == PORFStatus.approved.value,
             PO.status == POStatus.open.value,
             PO.expires_at > now,
-            PORFLine.product_id == product_id,
+            WootPorfLine.product_id == product_id,
         )
         .all()
     )

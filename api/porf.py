@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from pathlib import Path
 
 from database import SessionLocal
-from models import PORF, PORFLine, Product
+from models import PORF, Product, WootPorfLine
 from logic.porf_builder import draft_porf_xlsx
 from api import api_bp as bp
 
@@ -44,7 +44,7 @@ def upload_porf():
         db.add(product)
         db.flush()
 
-    line = PORFLine(porf_id=porf.id, product_id=product.id, qty=1)
+    line = WootPorfLine(porf_id=porf.id, product_id=product.id, qty=1)
     db.add(line)
     db.commit()
 

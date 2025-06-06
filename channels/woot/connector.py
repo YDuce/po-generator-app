@@ -5,7 +5,7 @@ from channels.base import ChannelConnector
 from channels.template_mixin import SpreadsheetTemplateProvider
 from pathlib import Path
 from models.porf import PORF
-from models.porf_line import PORFLine
+from models.woot_porf_line import WootPorfLine
 from models.po import PO
 from channels.woot.models import EventUploader
 

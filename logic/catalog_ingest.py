@@ -3,7 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models.product import Product
 from models.channel import Channel
 from models.porf import PORF
-from models.porf_line import PORFLine
+from models.woot_porf_line import WootPorfLine
 from typing import List, Dict
 from channels.woot.crud import get_live_porf_lines, create_or_get_today_draft_porf
 from channels.woot.models import PORFStatus

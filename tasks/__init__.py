@@ -1,2 +1,2 @@
 # flake8: noqa
-"""Tasks package with background scheduler and jobs."""
+"""Celery tasks package."""

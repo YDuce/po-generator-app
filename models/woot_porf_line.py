@@ -3,8 +3,8 @@ from models.base import JSONB
 from database import Base
 
 
-class PORFLine(Base):
-    """Line item within a PORF."""
+class WootPorfLine(Base):
+    """Line item within a Woot PORF."""
 
     __tablename__ = "porf_line"
 
