@@ -13,6 +13,10 @@ from database import Base
 # from models.porf import PORF
 # ...
 
+# Import models here for Alembic autogeneration
+# Example: from app.models.base import Base
+# from app.channels.woot.models import WootPorf, WootPo
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
