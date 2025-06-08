@@ -80,3 +80,8 @@ Layer: <core|channels|api>
 ---
 
 \*Last updated: \<YYYY‑MM‑DD>
+
+## Google Workspace
+App owns one Drive folder per organisation (ensure_workspace).
+All sheets created via core.services.drive/sheets.
+Sheets remain read-only until TWO_WAY_SYNC_ENABLED is True.
