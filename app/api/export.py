@@ -1,10 +1,13 @@
-"""Export API endpoints."""
+"""Export API endpoints.
+
+Layer: api
+"""
 
 from flask import Blueprint, request, jsonify
 from app.core.services.sheets import SheetsService
 from app.core.services.drive import DriveService
 from app.core.models.product import MasterProduct, InventoryRecord
-from sqlalchemy.orm import Session
+from app import db
 
 bp = Blueprint('export', __name__, url_prefix='/api/export')
 
@@ -18,8 +21,8 @@ def export_products_to_sheets():
     if not spreadsheet_id or not range_name:
         return jsonify({'error': 'spreadsheet_id and range_name are required'}), 400
     
-    db = Session()
-    products = db.query(MasterProduct).all()
+    session = db.session
+    products = session.query(MasterProduct).all()
     data = [product.to_dict() for product in products]
     
     sheets_service = SheetsService(None)  # TODO: Get credentials from config
@@ -37,8 +40,8 @@ def export_inventory_to_sheets():
     if not spreadsheet_id or not range_name:
         return jsonify({'error': 'spreadsheet_id and range_name are required'}), 400
     
-    db = Session()
-    records = db.query(InventoryRecord).all()
+    session = db.session
+    records = session.query(InventoryRecord).all()
     data = [record.to_dict() for record in records]
     
     sheets_service = SheetsService(None)  # TODO: Get credentials from config
@@ -56,8 +59,8 @@ def export_products_to_drive():
     if not folder_id:
         return jsonify({'error': 'folder_id is required'}), 400
     
-    db = Session()
-    products = db.query(MasterProduct).all()
+    session = db.session
+    products = session.query(MasterProduct).all()
     data = [product.to_dict() for product in products]
     
     # TODO: Convert data to CSV

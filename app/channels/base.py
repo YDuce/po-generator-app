@@ -1,4 +1,7 @@
-"""Base channel interface."""
+"""Base channel interface.
+
+Layer: channels
+"""
 
 from abc import ABC, abstractmethod
 from datetime import datetime

@@ -1,4 +1,7 @@
-"""Woot channel routes."""
+"""Woot channel routes.
+
+Layer: channels
+"""
 
 import os
 from datetime import datetime
@@ -6,7 +9,6 @@ from typing import Dict, List, Optional, Any
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from google.oauth2.credentials import Credentials
-from sqlalchemy.orm import Session
 
 from app import db
 from app.channels.woot.models import WootPorf, WootPo, WootPorfStatus, WootPoStatus, PORF, PO
@@ -30,9 +32,9 @@ def get_woot_service() -> WootService:
 
 def get_service() -> WootOrderService:
     """Get the Woot order service instance."""
-    db = Session()
+    session = db.session
     sheets_service = SheetsService(None)  # TODO: Get credentials from config
-    return WootOrderService(db, sheets_service)
+    return WootOrderService(session, sheets_service)
 
 @bp.route('/porfs', methods=['POST'])
 @login_required
