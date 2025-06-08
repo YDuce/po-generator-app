@@ -1,9 +1,9 @@
-"""Authentication API endpoints."""
+"""Authentication API endpoints.
 
-from flask import Blueprint, request, jsonify
-from sqlalchemy.orm import Session
+Layer: api
+"""
+from flask import Blueprint, request, jsonify, current_app
 from app.core.auth.service import AuthService
-from app.core.auth.models import User
 from app import db
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
