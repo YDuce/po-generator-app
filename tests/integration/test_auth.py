@@ -3,6 +3,8 @@ from unittest.mock import patch, MagicMock
 from app.core import oauth
 from app.models.user import User
 from app import db
+from app.core.auth.models import Session
+from app.core.auth.service import AuthService
 
 def test_oauth_flow(client, db_session):
     """Test the complete OAuth flow including user creation and session management."""
@@ -129,3 +131,126 @@ def test_auth_middleware_session_expired(client, db_session):
     # Try accessing protected route
     response = client.get('/api/woot/workspace')
     assert response.status_code == 401 
+
+def test_google_oauth_callback(client, db_session):
+    """Test Google OAuth callback."""
+    # Mock Google OAuth response
+    mock_user_info = {
+        "email": "test@example.com",
+        "given_name": "Test",
+        "family_name": "User"
+    }
+    
+    with patch('flask_dance.contrib.google.google.authorized', True), \
+         patch('flask_dance.contrib.google.google.get') as mock_get:
+        
+        # Mock successful user info response
+        mock_get.return_value.ok = True
+        mock_get.return_value.json.return_value = mock_user_info
+        
+        # Call OAuth callback
+        response = client.get('/auth/google/authorized')
+        assert response.status_code == 302  # Redirect to dashboard
+        
+        # Verify user was created
+        user = User.query.filter_by(email='test@example.com').first()
+        assert user is not None
+        assert user.first_name == 'Test'
+        assert user.last_name == 'User'
+        
+        # Verify session was created
+        with client.session_transaction() as session:
+            assert 'token' in session
+            token = session['token']
+            
+        # Verify session in database
+        db_session = Session.query.filter_by(token=token).first()
+        assert db_session is not None
+        assert db_session.user_id == user.id
+
+def test_google_oauth_callback_no_token(client, db_session):
+    """Test Google OAuth callback without token."""
+    with patch('flask_dance.contrib.google.google.authorized', False):
+        # Call OAuth callback
+        response = client.get('/auth/google/authorized')
+        assert response.status_code == 302  # Redirect to login
+        
+        # Verify no user was created
+        user = User.query.filter_by(email='test@example.com').first()
+        assert user is None
+        
+        # Verify session was not set
+        with client.session_transaction() as session:
+            assert 'token' not in session
+
+def test_logout(auth_client, db_session):
+    """Test user logout."""
+    # Get current session token
+    with auth_client.session_transaction() as session:
+        token = session.get('token')
+        assert token is not None
+    
+    # Call logout
+    response = auth_client.get('/api/auth/logout')
+    assert response.status_code == 200
+    assert response.json['message'] == 'Logged out successfully'
+    
+    # Verify session was removed
+    with auth_client.session_transaction() as session:
+        assert 'token' not in session
+    
+    # Verify session was revoked in database
+    session = Session.query.filter_by(token=token).first()
+    assert session is None
+
+def test_get_current_user(auth_client):
+    """Test getting current user info."""
+    response = auth_client.get('/api/auth/me')
+    assert response.status_code == 200
+    
+    data = response.json
+    assert data['email'] == 'test@example.com'
+    assert data['first_name'] == 'Test'
+    assert data['last_name'] == 'User'
+
+def test_session_validation(auth_client, db_session):
+    """Test session validation."""
+    # Get current session token
+    with auth_client.session_transaction() as session:
+        token = session.get('token')
+        assert token is not None
+    
+    # Create auth service
+    auth_service = AuthService(db_session, 'test-secret-key')
+    
+    # Validate session
+    user = auth_service.validate_session(token)
+    assert user is not None
+    assert user.email == 'test@example.com'
+    
+    # Verify last activity was updated
+    session = Session.query.filter_by(token=token).first()
+    assert session.last_activity is not None
+
+def test_session_expiration(auth_client, db_session):
+    """Test session expiration."""
+    # Get current session token
+    with auth_client.session_transaction() as session:
+        token = session.get('token')
+        assert token is not None
+    
+    # Create auth service
+    auth_service = AuthService(db_session, 'test-secret-key')
+    
+    # Expire session
+    session = Session.query.filter_by(token=token).first()
+    session.expires_at = session.expires_at.replace(year=2000)  # Set to past
+    db_session.commit()
+    
+    # Try to validate expired session
+    user = auth_service.validate_session(token)
+    assert user is None
+    
+    # Verify session was removed
+    session = Session.query.filter_by(token=token).first()
+    assert session is None 

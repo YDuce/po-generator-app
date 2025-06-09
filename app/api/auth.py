@@ -4,27 +4,20 @@ Layer: api
 """
 import logging
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, session
-from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.google import google
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.core import oauth
 from app.services.auth import upsert_user
+from app.core.auth.service import AuthService
 from app import db
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 logger = logging.getLogger(__name__)
 
-# Google OAuth blueprint
-google_bp = make_google_blueprint(
-    client_id=current_app.config.get("GOOGLE_CLIENT_ID"),
-    client_secret=current_app.config.get("GOOGLE_CLIENT_SECRET"),
-    scope=["profile", "email"],
-    redirect_to="auth.google_callback"
-)
-
 def get_auth_service():
     """Get the auth service instance."""
-    return oauth.AuthService(db.session, current_app.config["SECRET_KEY"])
+    return AuthService(db.session, current_app.config["SECRET_KEY"])
 
 @bp.route("/google")
 def google_login():
@@ -47,29 +40,41 @@ def google_callback():
     user = upsert_user(db.session, info)
     login_user(user)
     
-    # Create session token
+    # Create session
     auth = get_auth_service()
-    token = auth.create_token(user)
+    session_obj = auth.create_session(user)
     
     # Store token in session
-    session['token'] = token
+    session['token'] = session_obj.token
     
     # Redirect to frontend with token
-    return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={token}")
+    return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={session_obj.token}")
 
-@bp.route("/me", methods=["GET"])
-@login_required
-def get_current_user():
-    """Get the current user."""
-    return jsonify(current_user.to_dict())
-
-@bp.route("/logout", methods=["POST"])
+@bp.route("/logout")
 @login_required
 def logout():
-    """Logout the current user."""
+    """Log out the current user."""
+    if 'token' in session:
+        auth = get_auth_service()
+        auth.revoke_session(session['token'])
+        session.pop('token', None)
+    
     logout_user()
-    session.clear()
     return jsonify({"message": "Logged out successfully"})
+
+@bp.route("/me")
+@login_required
+def get_current_user():
+    """Get current user info."""
+    return jsonify({
+        "id": current_user.id,
+        "email": current_user.email,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "company_name": current_user.company_name,
+        "company_address": current_user.company_address,
+        "phone": current_user.phone
+    })
 
 @bp.route("/check", methods=["GET"])
 def check_auth():

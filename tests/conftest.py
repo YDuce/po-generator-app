@@ -22,38 +22,38 @@ from app.channels.woot.routes import bp as woot_bp
 from tests.test_config import setup_test_environment, TEST_CONFIG
 
 # ------------------------------------------------------------------
-# Database – use sqlite:///test.db for each test session
+# Database – use in-memory SQLite for each test session
 # ------------------------------------------------------------------
 TEST_DB_URL = TEST_CONFIG['DATABASE_URL']
 
 @pytest.fixture(scope="session")
 def engine():
     """Create a test database engine."""
-    # Remove any existing test DB file
-    if os.path.exists("test.db"):
-        os.remove("test.db")
-    
     # Create engine
     eng = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
     
-    # Run Alembic migrations against the file-based DB
+    # Run Alembic migrations against the in-memory DB
     alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
-    command.upgrade(alembic_cfg, "head")
+    command.upgrade(alembbic_cfg, "head")
     
     yield eng
     
     # Cleanup
     eng.dispose()
-    if os.path.exists("test.db"):
-        os.remove("test.db")
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def db_session(engine):
-    """Provide a scoped_session bound to the in-memory engine."""
-    Session = scoped_session(sessionmaker(bind=engine))
-    yield Session
-    Session.remove()
+    """Create a new database session for a test."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = scoped_session(sessionmaker(bind=connection))
+    
+    yield session
+    
+    session.close()
+    transaction.rollback()
+    connection.close()
 
 # ------------------------------------------------------------------
 # Flask app + client that use the same in-memory DB
@@ -80,14 +80,39 @@ def app(engine):
     return application
 
 @pytest.fixture(scope="function")
-def client(app):
-    """Create a test client for the app."""
-    return app.test_client(use_cookies=True)
+def client(app, db_session):
+    """Create a test client."""
+    app.config['TESTING'] = True
+    app.config['WTF_CSRF_ENABLED'] = False
+    
+    with app.test_client() as client:
+        with app.app_context():
+            yield client
 
 @pytest.fixture(scope="function")
-def auth_client(app):
+def auth_client(app, db_session):
     """Create an authenticated test client."""
-    return app.test_client(use_cookies=True, cls=FlaskLoginClient)
+    app.config['TESTING'] = True
+    app.config['WTF_CSRF_ENABLED'] = False
+    
+    with app.test_client() as client:
+        with app.app_context():
+            # Create test user
+            from app.core.auth.models import User
+            user = User(
+                email="test@example.com",
+                password_hash="test_hash",
+                first_name="Test",
+                last_name="User"
+            )
+            db_session.add(user)
+            db_session.commit()
+            
+            # Log in user
+            with client.session_transaction() as session:
+                session['user_id'] = user.id
+            
+            yield client
 
 @pytest.fixture(scope="function")
 def mock_drive_service(monkeypatch):

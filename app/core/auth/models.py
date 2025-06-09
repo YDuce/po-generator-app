@@ -15,18 +15,22 @@ class User(BaseModel):
     last_name = Column(String(100))
     is_admin = Column(Boolean, default=False)
     last_login = Column(DateTime)
+    is_active = Column(Boolean, default=True)
+    company_name = Column(String(255))
+    company_address = Column(String(512))
+    phone = Column(String(50))
     
     # Relationships
-    tokens = relationship('AuthToken', back_populates='user', cascade='all, delete-orphan')
+    sessions = relationship('Session', back_populates='user', cascade='all, delete-orphan')
 
-class AuthToken(BaseModel):
-    """Authentication token model."""
-    __tablename__ = 'auth_tokens'
+class Session(BaseModel):
+    """User session model."""
+    __tablename__ = 'sessions'
     
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     token = Column(String(255), unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
-    is_revoked = Column(Boolean, default=False)
+    last_activity = Column(DateTime, nullable=False, default=datetime.utcnow)
     
     # Relationships
-    user = relationship('User', back_populates='tokens') 
+    user = relationship('User', back_populates='sessions') 

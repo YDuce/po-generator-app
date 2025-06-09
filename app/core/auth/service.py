@@ -1,99 +1,121 @@
-"""Authentication service for token management.
+"""Authentication service.
 
 Layer: core
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
-from sqlalchemy.orm import Session
-
-from app.models.user import User
+from flask import current_app
+from sqlalchemy.orm import Session as DBSession
+from app.core.auth.models import User, Session
 
 logger = logging.getLogger(__name__)
 
-
 class AuthService:
-    """Authentication service for token management."""
-
-    def __init__(self, session: Session, secret_key: str):
+    """Authentication service for managing users and sessions."""
+    
+    def __init__(self, db_session: DBSession, secret_key: str):
         """Initialize auth service.
         
         Args:
-            session: Database session
-            secret_key: Secret key for JWT
+            db_session: SQLAlchemy database session
+            secret_key: Application secret key for token generation
         """
-        self.session = session
+        self.db = db_session
         self.secret_key = secret_key
-
-    def create_user(self, email: str, password: str) -> User:
-        """Create a new user.
+    
+    def create_session(self, user: User, expires_in: int = 3600) -> Session:
+        """Create a new session for a user.
         
         Args:
-            email: User email
-            password: User password
+            user: User to create session for
+            expires_in: Session duration in seconds
             
         Returns:
-            User: Created user
-            
-        Raises:
-            ValueError: If email is already taken
+            Created session
         """
-        from app.services.auth import create_user
-        return create_user(self.session, email, password)
-
-    def authenticate(self, email: str, password: str) -> Optional[User]:
-        """Authenticate a user.
+        # Generate token
+        token = self._generate_token(user)
+        
+        # Create session
+        session = Session(
+            user_id=user.id,
+            token=token,
+            expires_at=datetime.utcnow() + timedelta(seconds=expires_in)
+        )
+        
+        self.db.add(session)
+        self.db.commit()
+        
+        logger.info(f"Created session for user {user.email}")
+        return session
+    
+    def validate_session(self, token: str) -> Optional[User]:
+        """Validate a session token.
         
         Args:
-            email: User email
-            password: User password
+            token: Session token to validate
             
         Returns:
-            Optional[User]: Authenticated user or None
+            User if token is valid, None otherwise
         """
-        from app.services.auth import authenticate
-        return authenticate(self.session, email, password)
-
-    def create_token(self, user: User) -> str:
-        """Create a JWT token for a user.
-        
-        Args:
-            user: User to create token for
-            
-        Returns:
-            str: JWT token
-        """
-        payload = {
-            "sub": user.id,
-            "email": user.email,
-            "exp": datetime.utcnow() + timedelta(days=1)
-        }
-        return jwt.encode(payload, self.secret_key, algorithm="HS256")
-
-    def verify_token(self, token: str) -> Optional[User]:
-        """Verify a JWT token and return the user.
-        
-        Args:
-            token: JWT token to verify
-            
-        Returns:
-            Optional[User]: User if token is valid, None otherwise
-        """
-        try:
-            payload = jwt.decode(token, self.secret_key, algorithms=["HS256"])
-            user_id = payload["sub"]
-            return self.session.query(User).get(user_id)
-        except (jwt.InvalidTokenError, KeyError) as exc:
-            logger.warning("invalid token: %s", exc)
+        session = self.db.query(Session).filter_by(token=token).first()
+        if not session:
             return None
-
-    def revoke_token(self, token: str) -> None:
-        """Revoke a JWT token.
+            
+        if session.expires_at < datetime.utcnow():
+            self.db.delete(session)
+            self.db.commit()
+            return None
+            
+        # Update last activity
+        session.last_activity = datetime.utcnow()
+        self.db.commit()
+        
+        return session.user
+    
+    def revoke_session(self, token: str) -> bool:
+        """Revoke a session.
         
         Args:
-            token: JWT token to revoke
+            token: Session token to revoke
+            
+        Returns:
+            True if session was revoked, False if not found
         """
-        # In a real app, we would add the token to a blacklist
-        # For now, we just verify it's valid
-        self.verify_token(token) 
+        session = self.db.query(Session).filter_by(token=token).first()
+        if not session:
+            return False
+            
+        self.db.delete(session)
+        self.db.commit()
+        
+        logger.info(f"Revoked session for user {session.user.email}")
+        return True
+    
+    def _generate_token(self, user: User) -> str:
+        """Generate a session token.
+        
+        Args:
+            user: User to generate token for
+            
+        Returns:
+            Generated token
+        """
+        # Use a combination of user ID, timestamp, and secret key
+        timestamp = datetime.utcnow().timestamp()
+        token_data = f"{user.id}:{timestamp}:{self.secret_key}"
+        return self._hash_token(token_data)
+    
+    def _hash_token(self, token_data: str) -> str:
+        """Hash a token.
+        
+        Args:
+            token_data: Token data to hash
+            
+        Returns:
+            Hashed token
+        """
+        import hashlib
+        return hashlib.sha256(token_data.encode()).hexdigest() 
