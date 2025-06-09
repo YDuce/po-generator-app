@@ -20,7 +20,7 @@ login_manager = LoginManager()
 @login_manager.user_loader
 def load_user(user_id):
     """Load user from database."""
-    from app.models.user import User
+    from app.core.models.user import User
     return User.query.get(int(user_id))
 
 def create_app(config_object=None):

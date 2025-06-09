@@ -8,6 +8,8 @@ from app.core.models.order import (
     PurchaseOrderRequest,
     PurchaseOrderRequestItem
 )
+from .organisation import Organisation
+from .user import User
 
 __all__ = [
     'Base',
@@ -17,5 +19,7 @@ __all__ = [
     'PurchaseOrder',
     'PurchaseOrderItem',
     'PurchaseOrderRequest',
-    'PurchaseOrderRequestItem'
+    'PurchaseOrderRequestItem',
+    'Organisation',
+    'User'
 ] 

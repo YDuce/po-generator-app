@@ -26,8 +26,8 @@ from app.core import oauth
 from app.core.services.sheets import SheetsService
 from app.core.services.drive import DriveService
 from app.core.auth.service import AuthService
-from app.models.user import User
-from app.models.organisation import Organisation
+from app.core.models.user import User
+from app.core.models.organisation import Organisation
 
 bp = Blueprint("woot", __name__, url_prefix="/api/woot")
 logger = logging.getLogger(__name__)

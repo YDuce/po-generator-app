@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.models.base import BaseModel
-from app.models.user import User
+from app.core.models.user import User
 
 class Session(BaseModel):
     """User session model."""

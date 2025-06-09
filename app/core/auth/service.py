@@ -10,7 +10,7 @@ from flask import current_app
 from sqlalchemy.orm import Session as DBSession
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.core.auth.models import Session
-from app.models.user import User
+from app.core.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -120,4 +120,38 @@ class AuthService:
             Hashed token
         """
         import hashlib
-        return hashlib.sha256(token_data.encode()).hexdigest() 
+        return hashlib.sha256(token_data.encode()).hexdigest()
+
+def upsert_user(db_session, info):
+    """Find or create a user from Google OAuth info."""
+    email = info.get('email')
+    if not email:
+        raise ValueError('No email in Google user info')
+    user = db_session.query(User).filter_by(email=email).first()
+    if user:
+        # Update user info if changed
+        updated = False
+        if 'first_name' in info and user.first_name != info['first_name']:
+            user.first_name = info['first_name']
+            updated = True
+        if 'last_name' in info and user.last_name != info['last_name']:
+            user.last_name = info['last_name']
+            updated = True
+        if 'name' in info and (not user.first_name or not user.last_name):
+            # Try to split name if first/last missing
+            parts = info['name'].split(' ', 1)
+            if len(parts) == 2:
+                user.first_name, user.last_name = parts
+                updated = True
+        if updated:
+            db_session.commit()
+        return user
+    # Create new user
+    user = User(
+        email=email,
+        first_name=info.get('given_name') or info.get('first_name'),
+        last_name=info.get('family_name') or info.get('last_name'),
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user 
