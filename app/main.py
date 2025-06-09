@@ -6,7 +6,6 @@ from flask import Flask, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_cors import CORS
-from flask_dance.contrib.google import make_google_blueprint
 from .core.models.base import Base
 from app.api import catalog_bp, export_bp
 from app.api.auth import bp as auth_bp

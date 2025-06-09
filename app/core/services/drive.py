@@ -1,27 +1,61 @@
+"""Google Drive service.
+
+Layer: core
+"""
+
+import os
+import logging
 from typing import List, Dict, Any, Optional
-from google.oauth2.credentials import Credentials
+from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 import io
 
+logger = logging.getLogger(__name__)
 
 class DriveService:
-    """Core service for interacting with Google Drive."""
-
-    def __init__(self, credentials: Credentials):
+    """Google Drive service for file operations."""
+    
+    def __init__(self, credentials: Optional[Credentials] = None):
+        """Initialize Drive service.
+        
+        Args:
+            credentials: Optional Google credentials. If None, loads from GOOGLE_SVC_KEY.
+        """
+        if credentials is None:
+            key_path = os.environ.get("GOOGLE_SVC_KEY")
+            if not key_path:
+                raise ValueError("GOOGLE_SVC_KEY environment variable not set")
+            credentials = Credentials.from_service_account_file(
+                key_path,
+                scopes=["https://www.googleapis.com/auth/drive"]
+            )
+        
         self.service = build("drive", "v3", credentials=credentials)
         self.files = self.service.files()
+        logger.info("Drive service initialized")
 
-    def list_files(self, query: Optional[str] = None) -> List[Dict[str, Any]]:
-        """List files in Google Drive, optionally filtered by query."""
+    def list_files(self, folder_id: Optional[str] = None) -> list:
+        """List files in Drive.
+        
+        Args:
+            folder_id: Optional folder ID to list files from
+            
+        Returns:
+            List of file metadata
+        """
+        query = f"'{folder_id}' in parents" if folder_id else None
         try:
             results = self.files.list(
-                q=query, pageSize=100, fields="nextPageToken, files(id, name, mimeType)"
+                q=query,
+                pageSize=100,
+                fields="nextPageToken, files(id, name, mimeType)"
             ).execute()
             return results.get("files", [])
-        except HttpError as error:
-            raise Exception(f"Error listing files: {error}")
+        except Exception as e:
+            logger.error(f"Error listing files: {e}")
+            raise
 
     def get_file(self, file_id: str) -> Dict[str, Any]:
         """Get metadata for a specific file."""
@@ -64,22 +98,33 @@ class DriveService:
         except HttpError as error:
             raise Exception(f"Error deleting file: {error}")
 
-    def create_folder(
-        self, name: str, parent_id: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Create a new folder in Google Drive."""
+    def create_folder(self, name: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Create a folder in Drive.
+        
+        Args:
+            name: Folder name
+            parent_id: Optional parent folder ID
+            
+        Returns:
+            Created folder metadata
+        """
+        file_metadata = {
+            "name": name,
+            "mimeType": "application/vnd.google-apps.folder"
+        }
+        if parent_id:
+            file_metadata["parents"] = [parent_id]
+            
         try:
-            file_metadata = {
-                "name": name,
-                "mimeType": "application/vnd.google-apps.folder",
-            }
-            if parent_id:
-                file_metadata["parents"] = [parent_id]
-
-            file = self.files.create(body=file_metadata, fields="id").execute()
+            file = self.files.create(
+                body=file_metadata,
+                fields="id"
+            ).execute()
+            logger.info(f"Created folder: {name}")
             return file
-        except HttpError as error:
-            raise Exception(f"Error creating folder: {error}")
+        except Exception as e:
+            logger.error(f"Error creating folder: {e}")
+            raise
 
     # ------------------------------------------------------------------
     # Convenience helpers used by channel logic

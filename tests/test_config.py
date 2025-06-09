@@ -21,8 +21,8 @@ TEST_CONFIG = {
     # Test file paths
     'TEST_FILES_DIR': Path(__file__).parent / 'test_files',
     
-    # Database configuration
-    'DATABASE_URL': 'sqlite:///test.db',
+    # Database configuration - use in-memory SQLite for tests
+    'DATABASE_URL': 'sqlite:///:memory:',
     'FLASK_ENV': 'testing',
     'SECRET_KEY': 'test-secret-key',
     
@@ -38,11 +38,9 @@ TEST_CONFIG = {
 }
 
 def setup_test_environment():
-    """Set up test environment variables and directories."""
-    # Set test environment variables
+    """Set up test environment variables."""
     for key, value in TEST_CONFIG.items():
-        if isinstance(value, (str, int, bool)):
-            os.environ[key] = str(value)
+        os.environ[key] = str(value)
     
     # Create test files directory if it doesn't exist
     TEST_CONFIG['TEST_FILES_DIR'].mkdir(exist_ok=True)
