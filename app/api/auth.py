@@ -3,12 +3,14 @@
 Layer: api
 """
 import logging
+import jwt
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, session
 from flask_dance.contrib.google import google
 from flask_login import login_user, logout_user, login_required, current_user
 
 from app.core import oauth
-from app.services.auth import upsert_user
+from app.core.auth.service import upsert_user
 from app.core.auth.service import AuthService
 from app import db
 
@@ -18,6 +20,22 @@ logger = logging.getLogger(__name__)
 def get_auth_service():
     """Get the auth service instance."""
     return AuthService(db.session, current_app.config["SECRET_KEY"])
+
+def create_jwt_token(user):
+    """Create a JWT token for the user.
+    
+    Args:
+        user: User model instance
+        
+    Returns:
+        str: JWT token
+    """
+    payload = {
+        'sub': user.id,
+        'email': user.email,
+        'exp': datetime.utcnow() + timedelta(hours=1)
+    }
+    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
 
 @bp.route("/google")
 def google_login():
@@ -40,15 +58,14 @@ def google_callback():
     user = upsert_user(db.session, info)
     login_user(user)
     
-    # Create session
-    auth = get_auth_service()
-    session_obj = auth.create_session(user)
+    # Create JWT token
+    token = create_jwt_token(user)
     
     # Store token in session
-    session['token'] = session_obj.token
+    session['token'] = token
     
     # Redirect to frontend with token
-    return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={session_obj.token}")
+    return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={token}")
 
 @bp.route("/logout")
 @login_required
