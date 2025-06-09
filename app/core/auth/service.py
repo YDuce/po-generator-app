@@ -8,7 +8,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 from flask import current_app
 from sqlalchemy.orm import Session as DBSession
-from app.core.auth.models import User, Session
+from werkzeug.security import generate_password_hash, check_password_hash
+from app.core.auth.models import Session
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
