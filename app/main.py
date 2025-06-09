@@ -56,8 +56,8 @@ def create_app(config_object=None):
 #     app.register_blueprint(woot_bp)
     
     # Create database tables
-    with app.app_context():
-        db.create_all()
+    # with app.app_context():
+    #     db.create_all()
     
     # Serve static files
     @app.route('/assets/<path:filename>')

@@ -2,8 +2,7 @@
 
 This migration:
 1. Removes the oauth_tokens table
-2. Updates the users table with new fields
-3. Creates a new sessions table
+2. Creates a new sessions table
 """
 
 from alembic import op
@@ -12,19 +11,16 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '009_update_auth_models'
-down_revision = '001'
+down_revision = '004'
 branch_labels = None
 depends_on = None
 
 def upgrade():
-    # Drop oauth_tokens table
-    op.drop_table('oauth_tokens')
-    
-    # Add new columns to users table
-    op.add_column('users', sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False))
-    op.add_column('users', sa.Column('company_name', sa.String(255), nullable=True))
-    op.add_column('users', sa.Column('company_address', sa.String(512), nullable=True))
-    op.add_column('users', sa.Column('phone', sa.String(50), nullable=True))
+    # Drop oauth_tokens table if it exists
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if 'oauth_tokens' in inspector.get_table_names():
+        op.drop_table('oauth_tokens')
     
     # Create sessions table
     op.create_table(
@@ -44,12 +40,6 @@ def upgrade():
 def downgrade():
     # Drop sessions table
     op.drop_table('sessions')
-    
-    # Remove columns from users table
-    op.drop_column('users', 'is_active')
-    op.drop_column('users', 'company_name')
-    op.drop_column('users', 'company_address')
-    op.drop_column('users', 'phone')
     
     # Recreate oauth_tokens table
     op.create_table(

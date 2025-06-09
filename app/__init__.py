@@ -59,12 +59,11 @@ def create_app(test_config=None):
     app.register_blueprint(woot_bp)
 
     # Initialize OAuth
-    google_bp = init_oauth(app)
-    app.register_blueprint(google_bp, url_prefix="/login/google")
+    init_oauth(app)
 
-    with app.app_context():
-        from app.core.models.base import Base
-        Base.metadata.create_all(db.engine)
+    # with app.app_context():
+    #     from app.core.models.base import Base
+    #     Base.metadata.create_all(db.engine)
 
     # Configure logging
     logging.basicConfig(level=logging.INFO)
