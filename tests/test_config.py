@@ -14,6 +14,10 @@ TEST_CONFIG = {
     'GOOGLE_CLIENT_SECRET': 'test-client-secret',
     'GOOGLE_REDIRECT_URI': 'http://localhost:5000/auth/callback/google',
     
+    # JWT configuration
+    'JWT_SECRET_KEY': 'test-jwt-secret-key',
+    'JWT_ACCESS_TOKEN_EXPIRES': 3600,  # 1 hour
+    
     # Test workspace configuration
     'WORKSPACE_ROOT': 'Your-App-Workspace-Test',
     'WORKSPACE_FOLDERS': ['woot', 'porfs', 'pos'],
@@ -34,6 +38,24 @@ TEST_CONFIG = {
     },
     'MOCK_SHEETS_RESPONSES': {
         'create_spreadsheet': {'id': 'mock_sheet_id'},
+    },
+    
+    # Mock OAuth responses
+    'MOCK_OAUTH_RESPONSES': {
+        'user_info': {
+            'id': 'test_user_id',
+            'email': 'test@example.com',
+            'name': 'Test User',
+            'given_name': 'Test',
+            'family_name': 'User',
+            'picture': 'https://example.com/test.jpg',
+        },
+        'token': {
+            'access_token': 'test_access_token',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+            'refresh_token': 'test_refresh_token',
+        },
     },
 }
 
@@ -70,4 +92,5 @@ def get_mock_responses():
     return {
         'drive': TEST_CONFIG['MOCK_DRIVE_RESPONSES'],
         'sheets': TEST_CONFIG['MOCK_SHEETS_RESPONSES'],
+        'oauth': TEST_CONFIG['MOCK_OAUTH_RESPONSES'],
     } 

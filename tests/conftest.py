@@ -91,14 +91,14 @@ def client(app, db_session):
 
 @pytest.fixture(scope="function")
 def auth_client(app, db_session):
-    """Create an authenticated test client."""
+    """Create an authenticated test client with JWT token."""
     app.config['TESTING'] = True
     app.config['WTF_CSRF_ENABLED'] = False
     
     with app.test_client() as client:
         with app.app_context():
             # Create test user
-            from app.core.auth.models import User
+            from app.core.models.user import User
             user = User(
                 email="test@example.com",
                 password_hash="test_hash",
@@ -108,8 +108,41 @@ def auth_client(app, db_session):
             db_session.add(user)
             db_session.commit()
             
-            # Log in user
+            # Create JWT token
+            from app.api.auth import create_jwt_token
+            token = create_jwt_token(user)
+            
+            # Set token in headers
+            client.environ_base['HTTP_AUTHORIZATION'] = f'Bearer {token}'
+            
+            yield client
+
+@pytest.fixture(scope="function")
+def oauth_client(app, db_session):
+    """Create a test client with mocked OAuth flow."""
+    app.config['TESTING'] = True
+    app.config['WTF_CSRF_ENABLED'] = False
+    
+    with app.test_client() as client:
+        with app.app_context():
+            # Create test user
+            from app.core.models.user import User
+            user = User(
+                email="test@example.com",
+                password_hash="test_hash",
+                first_name="Test",
+                last_name="User"
+            )
+            db_session.add(user)
+            db_session.commit()
+            
+            # Mock OAuth session
             with client.session_transaction() as session:
+                session['google_oauth_token'] = {
+                    'access_token': 'test_access_token',
+                    'token_type': 'Bearer',
+                    'expires_in': 3600
+                }
                 session['user_id'] = user.id
             
             yield client
