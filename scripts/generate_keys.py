@@ -4,7 +4,7 @@ import secrets
 import os
 from pathlib import Path
 
-def generate_keys():
+def generate_keys() -> None:
     """Generate secure keys and update .env file."""
     # Generate keys
     flask_secret = secrets.token_hex(32)

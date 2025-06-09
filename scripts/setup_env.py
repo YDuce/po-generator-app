@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from generate_keys import generate_keys
 
-def setup_environment():
+def setup_environment() -> None:
     """Set up complete environment configuration."""
     # First, generate the secret keys
     generate_keys()

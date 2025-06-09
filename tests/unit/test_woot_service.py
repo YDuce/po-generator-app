@@ -15,7 +15,7 @@ def woot_service(mock_woot_client):
     """Create Woot service with mock client."""
     return WootService(mock_woot_client)
 
-def test_create_porf(woot_service, mock_woot_client, db_session):
+def test_create_porf(woot_service, mock_woot_client, db_session) -> None:
     """Test PORF creation."""
     # Mock Woot client response
     mock_woot_client.create_porf.return_value = {
@@ -62,7 +62,7 @@ def test_create_porf(woot_service, mock_woot_client, db_session):
     assert float(porf.lines[1].unit_price) == 100.00
     assert float(porf.lines[1].total_price) == 500.00
 
-def test_create_porf_error(woot_service, mock_woot_client, db_session):
+def test_create_porf_error(woot_service, mock_woot_client, db_session) -> None:
     """Test PORF creation error handling."""
     # Mock Woot client error
     mock_woot_client.create_porf.side_effect = Exception('Woot API Error')
@@ -89,7 +89,7 @@ def test_create_porf_error(woot_service, mock_woot_client, db_session):
     porf = WootPorf.query.filter_by(porf_no='PORF-001').first()
     assert porf is None
 
-def test_get_porf(woot_service, mock_woot_client, db_session):
+def test_get_porf(woot_service, mock_woot_client, db_session) -> None:
     """Test PORF retrieval."""
     # Create test PORF
     porf = WootPorf(
@@ -130,7 +130,7 @@ def test_get_porf(woot_service, mock_woot_client, db_session):
     assert float(result.lines[0].unit_price) == 100.00
     assert float(result.lines[0].total_price) == 1000.00
 
-def test_get_porf_not_found(woot_service, mock_woot_client, db_session):
+def test_get_porf_not_found(woot_service, mock_woot_client, db_session) -> None:
     """Test PORF retrieval when not found."""
     # Mock Woot client response
     mock_woot_client.get_porf.return_value = None
@@ -139,4 +139,13 @@ def test_get_porf_not_found(woot_service, mock_woot_client, db_session):
     result = woot_service.get_porf(999)
     
     # Verify None was returned
-    assert result is None 
+    assert result is None
+
+def test_woot_service_init() -> None:
+    pass
+
+def test_woot_service_create() -> None:
+    pass
+
+def test_woot_service_update() -> None:
+    pass 

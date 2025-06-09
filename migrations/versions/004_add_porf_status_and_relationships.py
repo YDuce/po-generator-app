@@ -16,7 +16,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Add organisation_id to users table
     op.add_column('users', sa.Column('organisation_id', sa.Integer(), nullable=True))
     op.create_foreign_key(
@@ -50,7 +50,7 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
     # Remove foreign keys and columns
     op.drop_constraint('fk_woot_porfs_channel', 'woot_porfs', type_='foreignkey')
     op.drop_constraint('fk_woot_porfs_organisation', 'woot_porfs', type_='foreignkey')

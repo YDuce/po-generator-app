@@ -23,7 +23,7 @@ def mock_sheets_service():
         service.create_spreadsheet.return_value = {'id': 'mock_sheet_id'}
         yield service
 
-def test_workspace_creation(client, db_session, mock_drive_service, mock_sheets_service):
+def test_workspace_creation(client, db_session, mock_drive_service, mock_sheets_service) -> None:
     """Test complete workspace creation flow."""
     # Create test user
     user = User(
@@ -49,7 +49,7 @@ def test_workspace_creation(client, db_session, mock_drive_service, mock_sheets_
     mock_drive_service.ensure_subfolder.assert_any_call(workspace_id, 'porfs')
     mock_drive_service.ensure_subfolder.assert_any_call(workspace_id, 'pos')
 
-def test_porf_upload_flow(client, db_session, mock_drive_service, mock_sheets_service):
+def test_porf_upload_flow(client, db_session, mock_drive_service, mock_sheets_service) -> None:
     """Test complete PORF upload and processing flow."""
     # Create test user and workspace
     user = User(
@@ -84,7 +84,7 @@ def test_porf_upload_flow(client, db_session, mock_drive_service, mock_sheets_se
     # Verify spreadsheet was created
     mock_sheets_service.create_spreadsheet.assert_called_once()
 
-def test_error_handling(client, db_session, mock_drive_service):
+def test_error_handling(client, db_session, mock_drive_service) -> None:
     """Test error handling in Drive operations."""
     # Create test user
     user = User(

@@ -42,7 +42,7 @@ down_revision = '005_add_notifications'
 branch_labels = None
 depends_on = None
 
-def upgrade():
+def upgrade() -> None:
     """Apply the migration changes.
     
     This function:
@@ -89,7 +89,7 @@ def upgrade():
         sa.UniqueConstraint('token')
     )
 
-def downgrade():
+def downgrade() -> None:
     """Reverse the migration changes.
     
     This function:

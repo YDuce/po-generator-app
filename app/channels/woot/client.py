@@ -1,13 +1,33 @@
 """Woot API client implementation."""
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TypedDict, cast
 import requests
 from datetime import datetime
+
+class OrderData(TypedDict):
+    """Type for Woot order data."""
+    id: str
+    status: str
+    created_at: str
+    updated_at: str
+    customer: Dict[str, Any]
+    items: List[Dict[str, Any]]
+    total: float
+    currency: str
+
+class InventoryItem(TypedDict):
+    """Type for Woot inventory item."""
+    id: str
+    sku: str
+    name: str
+    quantity: int
+    price: float
+    currency: str
 
 class WootClient:
     """Client for interacting with the Woot API."""
     
-    def __init__(self, api_key: str, api_url: str = 'https://api.woot.com/v1'):
+    def __init__(self, api_key: str, api_url: str = 'https://api.woot.com/v1') -> None:
         """Initialize the Woot client.
         
         Args:
@@ -22,7 +42,7 @@ class WootClient:
             'Content-Type': 'application/json'
         })
     
-    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make a request to the Woot API.
         
         Args:
@@ -41,15 +61,16 @@ class WootClient:
         response.raise_for_status()
         return response.json()
     
-    def get_inventory(self) -> List[Dict[str, Any]]:
+    def get_inventory(self) -> List[InventoryItem]:
         """Get current inventory levels.
         
         Returns:
             List of inventory items
         """
-        return self._make_request('GET', '/inventory')
+        response = self._make_request('GET', '/inventory')
+        return cast(List[InventoryItem], response)
     
-    def get_orders(self, start_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
+    def get_orders(self, start_date: Optional[datetime] = None) -> List[OrderData]:
         """Get orders from Woot.
         
         Args:
@@ -58,13 +79,14 @@ class WootClient:
         Returns:
             List of orders
         """
-        params = {}
+        params: Dict[str, str] = {}
         if start_date:
             params['start_date'] = start_date.isoformat()
         
-        return self._make_request('GET', '/orders', params=params)
+        response = self._make_request('GET', '/orders', params=params)
+        return cast(List[OrderData], response)
     
-    def create_order(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
+    def create_order(self, order_data: Dict[str, Any]) -> OrderData:
         """Create a new order.
         
         Args:
@@ -73,9 +95,10 @@ class WootClient:
         Returns:
             Created order
         """
-        return self._make_request('POST', '/orders', json=order_data)
+        response = self._make_request('POST', '/orders', json=order_data)
+        return cast(OrderData, response)
     
-    def update_order(self, order_id: str, order_data: Dict[str, Any]) -> Dict[str, Any]:
+    def update_order(self, order_id: str, order_data: Dict[str, Any]) -> OrderData:
         """Update an existing order.
         
         Args:
@@ -85,9 +108,10 @@ class WootClient:
         Returns:
             Updated order
         """
-        return self._make_request('PUT', f'/orders/{order_id}', json=order_data)
+        response = self._make_request('PUT', f'/orders/{order_id}', json=order_data)
+        return cast(OrderData, response)
     
-    def get_order(self, order_id: str) -> Dict[str, Any]:
+    def get_order(self, order_id: str) -> OrderData:
         """Get a single order.
         
         Args:
@@ -96,7 +120,8 @@ class WootClient:
         Returns:
             Order data
         """
-        return self._make_request('GET', f'/orders/{order_id}')
+        response = self._make_request('GET', f'/orders/{order_id}')
+        return cast(OrderData, response)
     
     def get_order_status(self, order_id: str) -> str:
         """Get the status of an order.

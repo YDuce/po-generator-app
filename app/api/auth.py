@@ -19,11 +19,11 @@ from app import db
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 logger = logging.getLogger(__name__)
 
-def get_auth_service():
+def get_auth_service() -> AuthService:
     """Get the auth service instance."""
     return AuthService(db.session, current_app.config["SECRET_KEY"])
 
-def create_jwt_token(user, expires_delta=None):
+def create_jwt_token(user, expires_delta=None) -> str:
     """Create a JWT token for the user.
     
     Args:
@@ -80,14 +80,14 @@ def token_required(f):
     return decorated
 
 @bp.route("/google")
-def google_login():
+def google_login() -> Response:
     """Initiate Google OAuth login."""
     if not google.authorized:
         return redirect(url_for("google.login"))
     return redirect(url_for("auth.google_callback"))
 
 @bp.route("/google/callback")
-def google_callback():
+def google_callback() -> Response:
     """Handle Google OAuth callback."""
     if not google.authorized:
         return redirect(url_for("google.login"))
@@ -117,14 +117,14 @@ def google_callback():
 
 @bp.route("/refresh", methods=["POST"])
 @token_required
-def refresh_token(user):
+def refresh_token(user) -> Response:
     """Refresh JWT token."""
     token = create_jwt_token(user)
     return jsonify({"token": token})
 
 @bp.route("/logout")
 @login_required
-def logout():
+def logout() -> Response:
     """Log out the current user."""
     if 'token' in session:
         auth = get_auth_service()
@@ -136,7 +136,7 @@ def logout():
 
 @bp.route("/me")
 @token_required
-def get_current_user(user):
+def get_current_user(user) -> Response:
     """Get current user info."""
     return jsonify({
         "id": user.id,
@@ -150,7 +150,7 @@ def get_current_user(user):
 
 @bp.route("/check", methods=["GET"])
 @token_required
-def check_auth(user):
+def check_auth(user) -> Response:
     """Check if user is authenticated."""
     return jsonify({
         "authenticated": True,
@@ -158,7 +158,7 @@ def check_auth(user):
     })
 
 @bp.route("/login-error")
-def login_error():
+def login_error() -> Response:
     """Handle login errors."""
     return jsonify({
         "error": "Authentication failed",
@@ -166,7 +166,7 @@ def login_error():
     }), 401
 
 @bp.route("/register", methods=["POST"])
-def register():
+def register() -> Response:
     """Register a new user."""
     data = request.get_json()
     email = data.get("email")
@@ -185,7 +185,7 @@ def register():
         return jsonify({"error": str(exc)}), 400
 
 @bp.route("/login", methods=["POST"])
-def login():
+def login() -> Response:
     """Login a user."""
     data = request.get_json()
     email = data.get("email")

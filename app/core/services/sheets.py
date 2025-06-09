@@ -5,7 +5,7 @@ Layer: core
 
 import os
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TypedDict, cast, Tuple
 from google.oauth2.credentials import Credentials
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Get TWO_WAY_SYNC_ENABLED from environment variable, default to False
 TWO_WAY_SYNC_ENABLED = os.environ.get("TWO_WAY_SYNC_ENABLED", "false").lower() == "true"
 
-def check_two_way_sync():
+def check_two_way_sync() -> None:
     """Check if two-way sync is enabled.
     
     Raises:
@@ -25,10 +25,25 @@ def check_two_way_sync():
     if not TWO_WAY_SYNC_ENABLED:
         raise RuntimeError("Two-way sync is not enabled. Set TWO_WAY_SYNC_ENABLED=true to enable.")
 
+class SheetResponse(TypedDict):
+    """Type for sheet response."""
+    spreadsheetId: str
+    updatedRange: str
+    updatedRows: int
+    updatedColumns: int
+    updatedCells: int
+
+class SheetMetadata(TypedDict):
+    """Type for sheet metadata."""
+    spreadsheetId: str
+    properties: Dict[str, Any]
+    sheets: List[Dict[str, Any]]
+    spreadsheetUrl: str
+
 class SheetsService:
     """Google Sheets service for spreadsheet operations."""
 
-    def __init__(self, credentials: Optional[Credentials] = None):
+    def __init__(self, credentials: Optional[Credentials] = None) -> None:
         """Initialize Sheets service.
         
         Args:
@@ -47,7 +62,7 @@ class SheetsService:
         self.spreadsheets = self.service.spreadsheets()
         logger.info("Sheets service initialized")
 
-    def get_sheet_data(self, spreadsheet_id: str, range_name: str) -> List[List[Any]]:
+    def get_sheet_data(self, spreadsheet_id: str, range_name: str) -> list[list[str]]:
         """Get data from a Google Sheet.
         
         Args:
@@ -62,14 +77,14 @@ class SheetsService:
                 spreadsheetId=spreadsheet_id,
                 range=range_name
             ).execute()
-            return result.get("values", [])
+            return cast(list[list[str]], result.get("values", []))
         except Exception as e:
             logger.error(f"Error reading sheet: {e}")
             raise
 
     def update_sheet_data(
-        self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
-    ) -> Dict[str, Any]:
+        self, spreadsheet_id: str, range_name: str, values: list[list[str]]
+    ) -> dict[str, str]:
         """Update data in a Google Sheet.
 
         Args:
@@ -93,15 +108,24 @@ class SheetsService:
                 body=body
             ).execute()
             logger.info(f"Updated sheet {spreadsheet_id} range {range_name}")
-            return result
+            return cast(dict[str, str], result)
         except Exception as e:
             logger.error(f"Error updating sheet: {e}")
             raise
 
     def append_sheet_data(
-        self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
-    ) -> Dict[str, Any]:
-        """Append data to a specific range in a spreadsheet."""
+        self, spreadsheet_id: str, range_name: str, values: list[list[str]]
+    ) -> dict[str, str]:
+        """Append data to a specific range in a spreadsheet.
+        
+        Args:
+            spreadsheet_id: ID of the spreadsheet
+            range_name: A1 notation range to append to
+            values: 2D array of values to append
+            
+        Returns:
+            Append response
+        """
         if not TWO_WAY_SYNC_ENABLED:
             raise RuntimeError("two-way sync disabled")
         try:
@@ -117,12 +141,20 @@ class SheetsService:
                 )
                 .execute()
             )
-            return result
+            return cast(dict[str, str], result)
         except HttpError as error:
             raise Exception(f"Error appending sheet data: {error}")
 
-    def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> Dict[str, Any]:
-        """Clear data from a specific range in a spreadsheet."""
+    def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> dict[str, str]:
+        """Clear data from a specific range in a spreadsheet.
+        
+        Args:
+            spreadsheet_id: ID of the spreadsheet
+            range_name: A1 notation range to clear
+            
+        Returns:
+            Clear response
+        """
         if not TWO_WAY_SYNC_ENABLED:
             raise RuntimeError("two-way sync disabled")
         try:
@@ -131,21 +163,37 @@ class SheetsService:
                 .clear(spreadsheetId=spreadsheet_id, range=range_name)
                 .execute()
             )
-            return result
+            return cast(dict[str, str], result)
         except HttpError as error:
             raise Exception(f"Error clearing sheet data: {error}")
 
     # ------------------------------------------------------------------
     # Convenience helpers used by channel logic
     # ------------------------------------------------------------------
-    def open_sheet(self, sheet_id: str):
-        """Return the spreadsheet metadata."""
-        return self.spreadsheets.get(spreadsheetId=sheet_id).execute()
+    def open_sheet(self, sheet_id: str) -> dict[str, str]:
+        """Return the spreadsheet metadata.
+        
+        Args:
+            sheet_id: ID of the spreadsheet
+            
+        Returns:
+            Spreadsheet metadata
+        """
+        return cast(dict[str, str], self.spreadsheets.get(spreadsheetId=sheet_id).execute())
 
     def copy_template(
         self, src_id: str, dst_title: str, folder_id: str
     ) -> tuple[str, str]:
-        """Copy ``src_id`` to ``dst_title`` inside ``folder_id``."""
+        """Copy ``src_id`` to ``dst_title`` inside ``folder_id``.
+        
+        Args:
+            src_id: Source spreadsheet ID
+            dst_title: Destination spreadsheet title
+            folder_id: Destination folder ID
+            
+        Returns:
+            Tuple of (spreadsheet ID, URL)
+        """
         if not TWO_WAY_SYNC_ENABLED:
             raise RuntimeError("two-way sync disabled")
         body = {"name": dst_title, "parents": [folder_id]}
@@ -154,15 +202,24 @@ class SheetsService:
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}"
         return sheet_id, url
 
-    def append_rows(self, sheet_id: str, rows: List[List[str]]):
-        """Append ``rows`` to the first worksheet."""
+    def append_rows(self, sheet_id: str, rows: list[list[str]]) -> dict[str, str]:
+        """Append ``rows`` to the first worksheet.
+        
+        Args:
+            sheet_id: ID of the spreadsheet
+            rows: 2D array of values to append
+            
+        Returns:
+            Append response
+        """
         if not TWO_WAY_SYNC_ENABLED:
             raise RuntimeError("two-way sync disabled")
         body = {"values": rows}
-        self.spreadsheets.values().append(
+        result = self.spreadsheets.values().append(
             spreadsheetId=sheet_id,
             range="A1",
             valueInputOption="USER_ENTERED",
             insertDataOption="INSERT_ROWS",
             body=body,
         ).execute()
+        return cast(dict[str, str], result)

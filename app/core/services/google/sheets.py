@@ -1,6 +1,6 @@
 """Google Sheets service."""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TypedDict, cast
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -9,10 +9,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class SheetResponse(TypedDict):
+    """Type for Google Sheets API response."""
+    spreadsheetId: str
+    updatedRange: str
+    updatedRows: int
+    updatedColumns: int
+    updatedCells: int
+
 class GoogleSheetsService:
     """Service for interacting with Google Sheets."""
     
-    def __init__(self, credentials: Credentials):
+    def __init__(self, credentials: Credentials) -> None:
         """Initialize the Google Sheets service.
         
         Args:
@@ -25,7 +33,7 @@ class GoogleSheetsService:
         self.spreadsheets = self.service.spreadsheets()
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def get_sheet_data(self, spreadsheet_id: str, range_name: str) -> List[List[Any]]:
+    def get_sheet_data(self, spreadsheet_id: str, range_name: str) -> List[List[str]]:
         """Get data from a Google Sheet.
         
         Args:
@@ -44,13 +52,13 @@ class GoogleSheetsService:
                 spreadsheetId=spreadsheet_id,
                 range=range_name
             ).execute()
-            return result.get('values', [])
+            return cast(List[List[str]], result.get('values', []))
         except HttpError as error:
             logger.error(f"Failed to get data from sheet {spreadsheet_id} range {range_name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def update_sheet_data(self, spreadsheet_id: str, range_name: str, values: List[List[Any]]) -> Dict[str, Any]:
+    def update_sheet_data(self, spreadsheet_id: str, range_name: str, values: List[List[str]]) -> SheetResponse:
         """Update data in a Google Sheet.
         
         Args:
@@ -75,13 +83,13 @@ class GoogleSheetsService:
                 valueInputOption='RAW',
                 body=body
             ).execute()
-            return result
+            return cast(SheetResponse, result)
         except HttpError as error:
             logger.error(f"Failed to update sheet {spreadsheet_id} range {range_name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def append_sheet_data(self, spreadsheet_id: str, range_name: str, values: List[List[Any]]) -> Dict[str, Any]:
+    def append_sheet_data(self, spreadsheet_id: str, range_name: str, values: List[List[str]]) -> SheetResponse:
         """Append data to a Google Sheet.
         
         Args:
@@ -107,13 +115,13 @@ class GoogleSheetsService:
                 insertDataOption='INSERT_ROWS',
                 body=body
             ).execute()
-            return result
+            return cast(SheetResponse, result)
         except HttpError as error:
             logger.error(f"Failed to append data to sheet {spreadsheet_id} range {range_name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> Dict[str, Any]:
+    def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> SheetResponse:
         """Clear data from a Google Sheet.
         
         Args:
@@ -132,13 +140,13 @@ class GoogleSheetsService:
                 spreadsheetId=spreadsheet_id,
                 range=range_name
             ).execute()
-            return result
+            return cast(SheetResponse, result)
         except HttpError as error:
             logger.error(f"Failed to clear data from sheet {spreadsheet_id} range {range_name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def create_sheet(self, title: str) -> Dict[str, Any]:
+    def create_sheet(self, title: str, folder_id: str) -> SheetMetadata:
         """Create a new Google Sheet.
         
         Args:

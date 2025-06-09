@@ -14,7 +14,7 @@ from alembic import command
 from alembic.script import ScriptDirectory
 from alembic.runtime.migration import MigrationContext
 
-def test_migrations():
+def test_migrations() -> None:
     """Test the migration chain on an in-memory database."""
     # Create in-memory SQLite database
     engine = create_engine('sqlite:///:memory:')

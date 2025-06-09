@@ -16,7 +16,7 @@ migrate = Migrate()
 logger = logging.getLogger(__name__)
 
 
-def create_app(test_config=None):
+def create_app(test_config=None) -> Flask:
     """Create and configure the Flask application.
     
     Args:

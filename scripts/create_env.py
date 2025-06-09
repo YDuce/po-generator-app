@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-def create_env_file():
+def create_env_file() -> None:
     """Create .env file with all necessary configuration."""
     # Get the service account path
     service_account_path = 'config/inventory-manager-461101-1cc498327e1a.json'

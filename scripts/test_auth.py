@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-def test_service_account():
+def test_service_account() -> None:
     """Test service account credentials."""
     # Load environment variables
     load_dotenv()
@@ -31,7 +31,7 @@ def test_service_account():
     except Exception as e:
         print(f"❌ Service account error: {str(e)}")
 
-def test_oauth_config():
+def test_oauth_config() -> None:
     """Test OAuth configuration."""
     # Load environment variables
     load_dotenv()

@@ -1,6 +1,6 @@
 """Google Drive service."""
 
-from typing import List, Dict, Any, Optional, BinaryIO
+from typing import List, Dict, Any, Optional, BinaryIO, TypedDict, cast
 import os
 import json
 from google.oauth2.credentials import Credentials
@@ -13,10 +13,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class FileMetadata(TypedDict):
+    """Type for Google Drive file metadata."""
+    id: str
+    name: str
+    mimeType: str
+    parents: Optional[List[str]]
+
 class GoogleDriveService:
     """Service for interacting with Google Drive."""
 
-    def __init__(self, credentials: Optional[Credentials] = None):
+    def __init__(self, credentials: Optional[Credentials] = None) -> None:
         """Initialize the Google Drive service.
 
         Args:
@@ -39,7 +46,7 @@ class GoogleDriveService:
         self.files = self.service.files()
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def list_files(self, query: Optional[str] = None, fields: str = 'files(id, name, mimeType)') -> List[Dict[str, Any]]:
+    def list_files(self, query: Optional[str] = None, fields: str = 'files(id, name, mimeType)') -> List[FileMetadata]:
         """List files in Google Drive.
         
         Args:
@@ -58,13 +65,13 @@ class GoogleDriveService:
                 q=query,
                 fields=fields
             ).execute()
-            return results.get('files', [])
+            return cast(List[FileMetadata], results.get('files', []))
         except HttpError as error:
             logger.error(f"Failed to list files: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def get_file(self, file_id: str, fields: str = '*') -> Dict[str, Any]:
+    def get_file(self, file_id: str, fields: str = '*') -> FileMetadata:
         """Get file metadata.
         
         Args:
@@ -79,16 +86,16 @@ class GoogleDriveService:
             ValueError: If credentials are invalid
         """
         try:
-            return self.files.get(
+            return cast(FileMetadata, self.files.get(
                 fileId=file_id,
                 fields=fields
-            ).execute()
+            ).execute())
         except HttpError as error:
             logger.error(f"Failed to get file {file_id}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def create_file(self, name: str, mime_type: str, parents: Optional[List[str]] = None) -> Dict[str, Any]:
+    def create_file(self, name: str, mime_type: str, parents: Optional[List[str]] = None) -> FileMetadata:
         """Create a new file in Google Drive.
         
         Args:
@@ -111,16 +118,16 @@ class GoogleDriveService:
             if parents:
                 file_metadata['parents'] = parents
             
-            return self.files.create(
+            return cast(FileMetadata, self.files.create(
                 body=file_metadata,
                 fields='id'
-            ).execute()
+            ).execute())
         except HttpError as error:
             logger.error(f"Failed to create file {name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def upload_file(self, file_path: str, mime_type: str, parents: Optional[List[str]] = None) -> Dict[str, Any]:
+    def upload_file(self, file_path: str, mime_type: str, parents: Optional[List[str]] = None) -> FileMetadata:
         """Upload a file to Google Drive.
         
         Args:
@@ -138,7 +145,7 @@ class GoogleDriveService:
         """
         try:
             file_metadata = {
-                'name': file_path.split('/')[-1],
+                'name': os.path.basename(file_path),
                 'mimeType': mime_type
             }
             if parents:
@@ -150,11 +157,11 @@ class GoogleDriveService:
                 resumable=True
             )
             
-            return self.files.create(
+            return cast(FileMetadata, self.files.create(
                 body=file_metadata,
                 media_body=media,
                 fields='id'
-            ).execute()
+            ).execute())
         except FileNotFoundError:
             logger.error(f"File not found: {file_path}")
             raise
@@ -163,7 +170,7 @@ class GoogleDriveService:
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def upload_file_from_memory(self, file_name: str, file_content: BinaryIO, mime_type: str, parents: Optional[List[str]] = None) -> Dict[str, Any]:
+    def upload_file_from_memory(self, file_name: str, file_content: BinaryIO, mime_type: str, parents: Optional[List[str]] = None) -> FileMetadata:
         """Upload a file from memory to Google Drive.
         
         Args:
@@ -193,17 +200,17 @@ class GoogleDriveService:
                 resumable=True
             )
             
-            return self.files.create(
+            return cast(FileMetadata, self.files.create(
                 body=file_metadata,
                 media_body=media,
                 fields='id'
-            ).execute()
+            ).execute())
         except HttpError as error:
             logger.error(f"Failed to upload file from memory {file_name}: {error}")
             raise
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def update_file(self, file_id: str, file_path: str, mime_type: str) -> Dict[str, Any]:
+    def update_file(self, file_id: str, file_path: str, mime_type: str) -> FileMetadata:
         """Update an existing file in Google Drive.
         
         Args:
@@ -226,10 +233,10 @@ class GoogleDriveService:
                 resumable=True
             )
             
-            return self.files.update(
+            return cast(FileMetadata, self.files.update(
                 fileId=file_id,
                 media_body=media
-            ).execute()
+            ).execute())
         except FileNotFoundError:
             logger.error(f"File not found: {file_path}")
             raise
@@ -252,4 +259,30 @@ class GoogleDriveService:
             self.files.delete(fileId=file_id).execute()
         except HttpError as error:
             logger.error(f"Failed to delete file {file_id}: {error}")
+            raise
+
+    def create_folder(self, name: str, parent_id: str) -> FileMetadata:
+        """Create a new folder in Google Drive.
+        
+        Args:
+            name: Name of the folder
+            parent_id: ID of the parent folder
+        Returns:
+            File metadata
+        Raises:
+            HttpError: If the API request fails after retries
+            ValueError: If credentials are invalid
+        """
+        try:
+            file_metadata = {
+                'name': name,
+                'mimeType': 'application/vnd.google-apps.folder',
+                'parents': [parent_id]
+            }
+            return cast(FileMetadata, self.files.create(
+                body=file_metadata,
+                fields='id'
+            ).execute())
+        except HttpError as error:
+            logger.error(f"Failed to create folder {name}: {error}")
             raise 

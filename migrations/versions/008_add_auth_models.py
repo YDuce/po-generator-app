@@ -10,7 +10,7 @@ down_revision = '004_placeholder'
 branch_labels = None
 depends_on = None
 
-def upgrade():
+def upgrade() -> None:
     # Add new columns to users table
     op.add_column('users', sa.Column('is_active', sa.Boolean(), nullable=True))
     op.add_column('users', sa.Column('updated_at', sa.DateTime(), nullable=True))
@@ -47,7 +47,7 @@ def upgrade():
         sa.UniqueConstraint('token')
     )
 
-def downgrade():
+def downgrade() -> None:
     op.drop_table('sessions')
     op.drop_table('oauth_tokens')
     op.drop_column('users', 'is_active')

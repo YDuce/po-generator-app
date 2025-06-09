@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-def update_service_account_path():
+def update_service_account_path() -> None:
     """Update the service account path in .env file."""
     env_path = Path('.env')
     if not env_path.exists():

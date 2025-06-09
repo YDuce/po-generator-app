@@ -6,7 +6,7 @@ from app import db
 from app.core.auth.models import Session
 from app.core.auth.service import AuthService
 
-def test_oauth_flow(client, db_session):
+def test_oauth_flow(client, db_session) -> None:
     """Test the complete OAuth flow including user creation and session management."""
     # Mock Google OAuth response
     mock_oauth_response = {
@@ -35,7 +35,7 @@ def test_oauth_flow(client, db_session):
             assert 'user_id' in session
             assert session['user_id'] == user.id
 
-def test_oauth_error_handling(client):
+def test_oauth_error_handling(client) -> None:
     """Test OAuth error scenarios."""
     # Test invalid state
     response = client.get('/auth/callback/google?error=invalid_state')
@@ -45,7 +45,7 @@ def test_oauth_error_handling(client):
     response = client.get('/auth/callback/google?error=access_denied')
     assert response.status_code == 403
 
-def test_protected_routes(client, db_session):
+def test_protected_routes(client, db_session) -> None:
     """Test that protected routes require authentication."""
     # Try accessing protected route without auth
     response = client.get('/api/workspace')
@@ -68,13 +68,13 @@ def test_protected_routes(client, db_session):
     response = client.get('/api/workspace')
     assert response.status_code == 200 
 
-def test_protected_route_requires_auth(client):
+def test_protected_route_requires_auth(client) -> None:
     """Test that protected routes require authentication."""
     # Try accessing protected route without auth
     response = client.get('/api/woot/workspace')
     assert response.status_code == 401
 
-def test_protected_route_with_auth(client, db_session):
+def test_protected_route_with_auth(client, db_session) -> None:
     """Test accessing protected route with authentication."""
     # Create test user
     user = User(
@@ -93,7 +93,7 @@ def test_protected_route_with_auth(client, db_session):
     response = client.get('/api/woot/workspace')
     assert response.status_code == 404  # Workspace not found, but auth passed
 
-def test_auth_middleware_invalid_session(client):
+def test_auth_middleware_invalid_session(client) -> None:
     """Test auth middleware with invalid session."""
     # Set invalid user ID in session
     with client.session_transaction() as session:
@@ -103,13 +103,13 @@ def test_auth_middleware_invalid_session(client):
     response = client.get('/api/woot/workspace')
     assert response.status_code == 401
 
-def test_auth_middleware_no_session(client):
+def test_auth_middleware_no_session(client) -> None:
     """Test auth middleware with no session."""
     # Try accessing protected route without session
     response = client.get('/api/woot/workspace')
     assert response.status_code == 401
 
-def test_auth_middleware_session_expired(client, db_session):
+def test_auth_middleware_session_expired(client, db_session) -> None:
     """Test auth middleware with expired session."""
     # Create test user
     user = User(
@@ -132,7 +132,7 @@ def test_auth_middleware_session_expired(client, db_session):
     response = client.get('/api/woot/workspace')
     assert response.status_code == 401 
 
-def test_google_oauth_callback(client, db_session):
+def test_google_oauth_callback(client, db_session) -> None:
     """Test Google OAuth callback."""
     # Mock Google OAuth response
     mock_user_info = {
@@ -168,7 +168,7 @@ def test_google_oauth_callback(client, db_session):
         assert db_session is not None
         assert db_session.user_id == user.id
 
-def test_google_oauth_callback_no_token(client, db_session):
+def test_google_oauth_callback_no_token(client, db_session) -> None:
     """Test Google OAuth callback without token."""
     with patch('flask_dance.contrib.google.google.authorized', False):
         # Call OAuth callback
@@ -183,7 +183,7 @@ def test_google_oauth_callback_no_token(client, db_session):
         with client.session_transaction() as session:
             assert 'token' not in session
 
-def test_logout(auth_client, db_session):
+def test_logout(auth_client, db_session) -> None:
     """Test user logout."""
     # Get current session token
     with auth_client.session_transaction() as session:
@@ -203,7 +203,7 @@ def test_logout(auth_client, db_session):
     session = Session.query.filter_by(token=token).first()
     assert session is None
 
-def test_get_current_user(auth_client):
+def test_get_current_user(auth_client) -> None:
     """Test getting current user info."""
     response = auth_client.get('/api/auth/me')
     assert response.status_code == 200
@@ -213,7 +213,7 @@ def test_get_current_user(auth_client):
     assert data['first_name'] == 'Test'
     assert data['last_name'] == 'User'
 
-def test_session_validation(auth_client, db_session):
+def test_session_validation(auth_client, db_session) -> None:
     """Test session validation."""
     # Get current session token
     with auth_client.session_transaction() as session:
@@ -232,7 +232,7 @@ def test_session_validation(auth_client, db_session):
     session = Session.query.filter_by(token=token).first()
     assert session.last_activity is not None
 
-def test_session_expiration(auth_client, db_session):
+def test_session_expiration(auth_client, db_session) -> None:
     """Test session expiration."""
     # Get current session token
     with auth_client.session_transaction() as session:

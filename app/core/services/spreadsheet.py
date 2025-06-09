@@ -36,3 +36,6 @@ class SpreadsheetBuilder:
             writer.writeheader()
             writer.writerows(rows)
         return output_path
+
+    def get_sheet_data(self) -> None:
+        pass

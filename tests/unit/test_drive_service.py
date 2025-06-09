@@ -37,7 +37,7 @@ def drive_service(mock_drive_api):
     with patch('googleapiclient.discovery.build', return_value=mock_drive_api):
         return DriveService(None)
 
-def test_ensure_workspace(drive_service, mock_drive_api):
+def test_ensure_workspace(drive_service, mock_drive_api) -> None:
     """Test workspace creation."""
     # Create workspace
     workspace_id = drive_service.ensure_workspace('test_org')
@@ -51,7 +51,7 @@ def test_ensure_workspace(drive_service, mock_drive_api):
     assert 'porfs' in mock_drive_api.folders
     assert 'pos' in mock_drive_api.folders
 
-def test_ensure_workspace_idempotent(drive_service, mock_drive_api):
+def test_ensure_workspace_idempotent(drive_service, mock_drive_api) -> None:
     """Test workspace creation is idempotent."""
     # Create workspace twice
     workspace_id1 = drive_service.ensure_workspace('test_org')
@@ -61,7 +61,7 @@ def test_ensure_workspace_idempotent(drive_service, mock_drive_api):
     assert workspace_id1 == workspace_id2
     assert workspace_id1 == 'Your-App-Workspace-test_org_id'
 
-def test_ensure_subfolder(drive_service, mock_drive_api):
+def test_ensure_subfolder(drive_service, mock_drive_api) -> None:
     """Test subfolder creation."""
     # Create subfolder
     folder_id = drive_service.ensure_subfolder('parent_id', 'test_folder')
@@ -70,7 +70,7 @@ def test_ensure_subfolder(drive_service, mock_drive_api):
     assert folder_id == 'test_folder_id'
     assert 'test_folder' in mock_drive_api.folders
 
-def test_ensure_subfolder_idempotent(drive_service, mock_drive_api):
+def test_ensure_subfolder_idempotent(drive_service, mock_drive_api) -> None:
     """Test subfolder creation is idempotent."""
     # Create subfolder twice
     folder_id1 = drive_service.ensure_subfolder('parent_id', 'test_folder')
@@ -80,7 +80,7 @@ def test_ensure_subfolder_idempotent(drive_service, mock_drive_api):
     assert folder_id1 == folder_id2
     assert folder_id1 == 'test_folder_id'
 
-def test_list_files(drive_service, mock_drive_api):
+def test_list_files(drive_service, mock_drive_api) -> None:
     """Test file listing."""
     # Add test file
     mock_drive_api.folders['test_file'] = 'test_file_id'
@@ -93,7 +93,7 @@ def test_list_files(drive_service, mock_drive_api):
     assert files[0]['id'] == 'test_file_id'
     assert files[0]['name'] == 'test_file'
 
-def test_create_folder(drive_service, mock_drive_api):
+def test_create_folder(drive_service, mock_drive_api) -> None:
     """Test folder creation."""
     # Create folder
     folder = drive_service.create_folder('test_folder', 'parent_id')
@@ -101,3 +101,12 @@ def test_create_folder(drive_service, mock_drive_api):
     # Verify folder was created
     assert folder['id'] == 'test_folder_id'
     assert 'test_folder' in mock_drive_api.folders 
+
+def test_drive_service_init() -> None:
+    pass
+
+def test_drive_service_upload_file() -> None:
+    pass
+
+def test_drive_service_download_file() -> None:
+    pass 

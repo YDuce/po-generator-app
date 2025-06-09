@@ -16,7 +16,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Create notifications table
     op.create_table(
         'notifications',
@@ -32,6 +32,6 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
     # Drop notifications table
     op.drop_table('notifications') 

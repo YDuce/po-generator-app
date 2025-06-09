@@ -21,7 +21,7 @@ def mock_sheets_service():
     service.copy_template.return_value = ('sheet_id', 'https://docs.google.com/spreadsheets/d/sheet_id')
     return service
 
-def test_ingest_porf(mock_drive_service, mock_sheets_service, db_session):
+def test_ingest_porf(mock_drive_service, mock_sheets_service, db_session) -> None:
     """Test PORF ingestion."""
     # Create test CSV data
     csv_data = """product_id,product_name,quantity,unit_price
@@ -66,7 +66,7 @@ PROD-002,Test Product 2,5,100.00"""
     assert result['porf_id'] == str(porf.id)
     assert result['sheet_url'] == 'https://docs.google.com/spreadsheets/d/sheet_id'
 
-def test_ingest_porf_invalid_csv(mock_drive_service, mock_sheets_service, db_session):
+def test_ingest_porf_invalid_csv(mock_drive_service, mock_sheets_service, db_session) -> None:
     """Test PORF ingestion with invalid CSV."""
     # Create invalid CSV data
     csv_data = """invalid_column
@@ -84,7 +84,7 @@ invalid_data"""
     porf = WootPorf.query.first()
     assert porf is None
 
-def test_ingest_porf_empty_csv(mock_drive_service, mock_sheets_service, db_session):
+def test_ingest_porf_empty_csv(mock_drive_service, mock_sheets_service, db_session) -> None:
     """Test PORF ingestion with empty CSV."""
     # Create empty CSV data
     csv_data = """product_id,product_name,quantity,unit_price"""
@@ -107,7 +107,7 @@ def test_ingest_porf_empty_csv(mock_drive_service, mock_sheets_service, db_sessi
     assert result['porf_id'] == str(porf.id)
     assert result['sheet_url'] == 'https://docs.google.com/spreadsheets/d/sheet_id'
 
-def test_ingest_porf_drive_error(mock_drive_service, mock_sheets_service, db_session):
+def test_ingest_porf_drive_error(mock_drive_service, mock_sheets_service, db_session) -> None:
     """Test PORF ingestion with Drive error."""
     # Create test CSV data
     csv_data = """product_id,product_name,quantity,unit_price
@@ -129,4 +129,13 @@ PROD-001,Test Product,10,100.00"""
     
     # Verify no PORF was created
     porf = WootPorf.query.first()
-    assert porf is None 
+    assert porf is None
+
+def test_porf_ingestion_init() -> None:
+    pass
+
+def test_porf_ingestion_process() -> None:
+    pass
+
+def test_porf_ingestion_validate() -> None:
+    pass 

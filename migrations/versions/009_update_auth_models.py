@@ -20,7 +20,7 @@ down_revision = "008_add_auth_models"
 branch_labels = None
 depends_on = None
 
-def upgrade():
+def upgrade() -> None:
     # Drop oauth_tokens table if it exists
     conn = op.get_bind()
     inspector = sa.inspect(conn)
@@ -42,7 +42,7 @@ def upgrade():
         sa.UniqueConstraint('token')
     )
 
-def downgrade():
+def downgrade() -> None:
     # Drop sessions table
     op.drop_table('sessions')
     

@@ -144,7 +144,7 @@ class OrderManager:
         self.db.refresh(request)
         return request
     
-    def approve_request(self, request_id: int, approver: str, notes: Optional[str] = None) -> Optional[PurchaseOrderRequest]:
+    def approve_request(self, request_id: int, approver: str, notes: Optional[str] = None) -> None:
         """Approve a purchase order request.
         
         Args:
@@ -168,7 +168,7 @@ class OrderManager:
         self.db.refresh(request)
         return request
     
-    def reject_request(self, request_id: int, rejector: str, notes: str) -> Optional[PurchaseOrderRequest]:
+    def reject_request(self, request_id: int, rejector: str, notes: Optional[str] = None) -> None:
         """Reject a purchase order request.
         
         Args:

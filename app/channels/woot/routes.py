@@ -5,8 +5,8 @@ Layer: channels
 
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Any
-from flask import Blueprint, request, jsonify, current_app
+from typing import Dict, List, Optional, Any, Tuple, Union, cast
+from flask import Blueprint, request, jsonify, current_app, Response
 from flask_login import login_required, current_user
 from google.oauth2.credentials import Credentials
 import logging
@@ -28,13 +28,14 @@ from app.core.services.drive import DriveService
 from app.core.auth.service import AuthService
 from app.core.models.user import User
 from app.core.models.organisation import Organisation
+from app.core.auth import get_woot_service
 
 bp = Blueprint("woot", __name__, url_prefix="/api/woot")
 logger = logging.getLogger(__name__)
 
 
 @bp.route("/porf-upload", methods=["POST"])
-def porf_upload():
+def porf_upload() -> Response:
     """Upload and ingest a PORF spreadsheet."""
     if "file" not in request.files:
         return jsonify({"error": "file required"}), 400
@@ -64,9 +65,8 @@ def get_service() -> WootOrderService:
     return WootOrderService(session, sheets_service)
 
 
-@bp.route("/porfs", methods=["POST"])
-@login_required
-def create_porf():
+@bp.route("/porf", methods=["POST"])
+def create_porf() -> Response:
     """Create a new PORF."""
     try:
         data = request.get_json()
@@ -78,14 +78,13 @@ def create_porf():
         return jsonify({"error": str(e)}), 400
 
 
-@bp.route("/porfs/<int:porf_id>/po", methods=["POST"])
-@login_required
-def create_po(porf_id: int):
+@bp.route("/po", methods=["POST"])
+def create_po() -> Response:
     """Create a new PO from a PORF."""
     try:
         data = request.get_json()
         service = get_woot_service()
-        po = service.create_po(porf_id, data)
+        po = service.create_po(data['porf_id'], data)
         return jsonify(po.to_dict()), 201
     except Exception as e:
         current_app.logger.error(f"Error creating PO: {str(e)}")
@@ -94,7 +93,7 @@ def create_po(porf_id: int):
 
 @bp.route("/pos/<int:po_id>/upload", methods=["POST"])
 @login_required
-def upload_po_file(po_id: int):
+def upload_po_file(po_id: int) -> Response:
     """Upload a PO file."""
     try:
         if "file" not in request.files:
@@ -123,7 +122,7 @@ def upload_po_file(po_id: int):
 
 @bp.route("/porfs/<int:porf_id>/spreadsheet", methods=["POST"])
 @login_required
-def create_porf_spreadsheet(porf_id: int):
+def create_porf_spreadsheet(porf_id: int) -> Response:
     """Create a spreadsheet for a PORF."""
     try:
         service = get_woot_service()
@@ -136,7 +135,7 @@ def create_porf_spreadsheet(porf_id: int):
 
 @bp.route("/porfs/<int:porf_id>/status", methods=["PUT"])
 @login_required
-def update_porf_status(porf_id: int):
+def update_porf_status(porf_id: int) -> Response:
     """Update a PORF's status."""
     try:
         data = request.get_json()
@@ -151,7 +150,7 @@ def update_porf_status(porf_id: int):
 
 @bp.route("/pos/<int:po_id>/status", methods=["PUT"])
 @login_required
-def update_po_status(po_id: int):
+def update_po_status(po_id: int) -> Response:
     """Update a PO's status."""
     try:
         data = request.get_json()
@@ -166,7 +165,7 @@ def update_po_status(po_id: int):
 
 @bp.route("/porfs/<int:porf_id>", methods=["GET"])
 @login_required
-def get_porf(porf_id: int):
+def get_porf(porf_id: int) -> Response:
     """Get a PORF by ID."""
     try:
         service = get_woot_service()
@@ -179,7 +178,7 @@ def get_porf(porf_id: int):
 
 @bp.route("/pos/<int:po_id>", methods=["GET"])
 @login_required
-def get_po(po_id: int):
+def get_po(po_id: int) -> Response:
     """Get a PO by ID."""
     try:
         service = get_woot_service()
@@ -192,7 +191,7 @@ def get_po(po_id: int):
 
 @bp.route("/porfs", methods=["GET"])
 @login_required
-def list_porfs():
+def list_porfs() -> Response:
     """List PORFs."""
     try:
         status = request.args.get("status")
@@ -209,7 +208,7 @@ def list_porfs():
 
 @bp.route("/pos", methods=["GET"])
 @login_required
-def list_pos():
+def list_pos() -> Response:
     """List POs."""
     try:
         status = request.args.get("status")
@@ -225,135 +224,140 @@ def list_pos():
 
 
 @bp.route("/orders", methods=["GET"])
-def get_orders():
+def get_orders() -> Tuple[Response, int]:
     """Get orders within a date range."""
     start_date = datetime.fromisoformat(request.args.get("start_date"))
     end_date = datetime.fromisoformat(request.args.get("end_date"))
 
-    service = get_service()
+    service = get_woot_service()
     orders = service.fetch_orders(start_date, end_date)
-    return jsonify(orders)
+    return jsonify(orders), 200
 
 
 @bp.route("/orders", methods=["POST"])
-def create_order():
+def create_order() -> Tuple[Response, int]:
     """Create a new order."""
     data = request.get_json()
-    service = get_service()
+    service = get_woot_service()
     order = service.create_order(data)
     return jsonify(order), 201
 
 
 @bp.route("/orders/<order_id>", methods=["GET"])
-def get_order(order_id: str):
+def get_order(order_id: str) -> Tuple[Response, int]:
     """Get a single order by ID."""
-    service = get_service()
+    service = get_woot_service()
     order = service.get_order(order_id)
     if not order:
         return jsonify({"error": "Order not found"}), 404
-    return jsonify(order)
+    return jsonify(order), 200
 
 
 @bp.route("/orders/<order_id>", methods=["PUT"])
-def update_order(order_id: str):
+def update_order(order_id: str) -> Tuple[Response, int]:
     """Update an existing order."""
     data = request.get_json()
-    service = get_service()
-    try:
-        order = service.update_order(order_id, data)
-        return jsonify(order)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+    service = get_woot_service()
+    order = service.update_order(order_id, data)
+    return jsonify(order), 200
 
 
 @bp.route("/orders/<order_id>/status", methods=["GET"])
-def get_order_status(order_id: str):
+def get_order_status(order_id: str) -> Tuple[Response, int]:
     """Get the status of an order."""
-    service = get_service()
-    try:
-        status = service.get_order_status(order_id)
-        return jsonify({"status": status})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+    service = get_woot_service()
+    status = service.get_order_status(order_id)
+    return jsonify({"status": status}), 200
 
 
 @bp.route("/export/sheets", methods=["POST"])
-def export_to_sheets():
+def export_to_sheets() -> Tuple[Response, int]:
     """Export orders to Google Sheets."""
     data = request.get_json()
-    spreadsheet_id = data.get("spreadsheet_id")
-    range_name = data.get("range_name")
+    spreadsheet_id = data["spreadsheet_id"]
+    range_name = data["range_name"]
 
-    if not spreadsheet_id or not range_name:
-        return jsonify({"error": "spreadsheet_id and range_name are required"}), 400
-
-    service = get_service()
+    service = get_woot_service()
     service.export_to_sheets(spreadsheet_id, range_name)
-    return jsonify({"message": "Export completed successfully"})
+    return jsonify({"message": "Export completed"}), 200
 
 
 @bp.route("/inventory", methods=["GET"])
 @login_required
-def get_inventory():
-    """Get inventory from Woot."""
+def get_inventory() -> Tuple[Response, int]:
+    """Get current inventory levels."""
     try:
         service = get_woot_service()
         inventory = service.fetch_inventory()
         return jsonify(inventory), 200
     except Exception as e:
-        current_app.logger.error(f"Error getting inventory: {str(e)}")
+        current_app.logger.error(f"Error fetching inventory: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
 
-def get_drive_service():
-    """Get the Drive service instance."""
-    return DriveService(current_user.google_credentials)
+def get_drive_service() -> DriveService:
+    """Get Drive service instance."""
+    credentials = None  # TODO: Get from session
+    return DriveService(credentials)
 
 
-def get_sheets_service():
-    """Get the Sheets service instance."""
-    return SheetsService(current_user.google_credentials)
+def get_sheets_service() -> SheetsService:
+    """Get Sheets service instance."""
+    credentials = None  # TODO: Get from session
+    return SheetsService(credentials)
 
 
 @bp.route("/workspace", methods=["POST"])
 @login_required
-def create_workspace():
-    """Create a workspace and return its ID."""
+def create_workspace() -> Tuple[Response, int]:
+    """Create a new workspace."""
     try:
-        # Get or create organisation
-        org = Organisation.query.filter_by(name=current_user.email.split('@')[0]).first()
-        if not org:
-            org = Organisation(name=current_user.email.split('@')[0])
-            db.session.add(org)
-            db.session.commit()
-        
-        # Create workspace
+        data = request.get_json()
         drive = get_drive_service()
-        workspace_id = drive.ensure_workspace(str(org.id))
-        
-        # Update organisation with workspace ID
-        if org.workspace_folder_id != workspace_id:
-            org.workspace_folder_id = workspace_id
-            db.session.commit()
-        
-        return jsonify({"workspace_id": workspace_id}), 201
-    
+        sheets = get_sheets_service()
+
+        # Create workspace folder
+        folder = drive.create_file(
+            name=data["name"],
+            mime_type="application/vnd.google-apps.folder"
+        )
+
+        # Create spreadsheet
+        spreadsheet = sheets.create_sheet(f"{data['name']} - Orders")
+        spreadsheet_id = spreadsheet["spreadsheetId"]
+
+        return jsonify({
+            "folder_id": folder["id"],
+            "spreadsheet_id": spreadsheet_id
+        }), 201
     except Exception as e:
-        logger.error("Workspace creation failed: %s", str(e))
-        return jsonify({"error": "Failed to create workspace"}), 500
+        current_app.logger.error(f"Error creating workspace: {str(e)}")
+        return jsonify({"error": str(e)}), 400
 
 
 @bp.route("/workspace", methods=["GET"])
 @login_required
-def get_workspace():
-    """Get the current user's workspace ID."""
+def get_workspace() -> Tuple[Response, int]:
+    """Get workspace details."""
     try:
-        org = Organisation.query.filter_by(name=current_user.email.split('@')[0]).first()
-        if not org or not org.workspace_folder_id:
+        drive = get_drive_service()
+        sheets = get_sheets_service()
+
+        # Get workspace folder
+        folder = drive.get_file(current_app.config["WORKSPACE_FOLDER_ID"])
+        if not folder:
             return jsonify({"error": "Workspace not found"}), 404
-        
-        return jsonify({"workspace_id": org.workspace_folder_id})
-    
+
+        # Get spreadsheet
+        spreadsheet = sheets.get_sheet_data(
+            spreadsheet_id=current_app.config["WORKSPACE_SPREADSHEET_ID"],
+            range_name="Sheet1!A1:Z1000"
+        )
+
+        return jsonify({
+            "folder": folder,
+            "spreadsheet": spreadsheet
+        }), 200
     except Exception as e:
-        logger.error("Workspace retrieval failed: %s", str(e))
-        return jsonify({"error": "Failed to retrieve workspace"}), 500
+        current_app.logger.error(f"Error getting workspace: {str(e)}")
+        return jsonify({"error": str(e)}), 400

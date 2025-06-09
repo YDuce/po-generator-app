@@ -130,3 +130,12 @@ def test_woot_porf_line_model(db_session):
     # Test relationship
     assert line.porf == porf
     assert line in porf.lines 
+
+def test_models_init() -> None:
+    pass
+
+def test_models_create() -> None:
+    pass
+
+def test_models_update() -> None:
+    pass 

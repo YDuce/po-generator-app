@@ -8,7 +8,7 @@ from __future__ import annotations
 import csv
 import logging
 from io import BytesIO
-from typing import BinaryIO, Dict, List
+from typing import BinaryIO, Dict, List, TypedDict, cast
 
 from app import db
 from app.core.services.drive import DriveService
@@ -20,10 +20,25 @@ logger = logging.getLogger(__name__)
 TEMPLATE_ID = "TEMPLATE_ID"
 
 
+class IngestResult(TypedDict):
+    """Type for PORF ingestion result."""
+    porf_id: str
+    sheet_url: str
+
+
 def ingest_porf(
     upload_file: BinaryIO, drive: DriveService, sheets: SheetsService
-) -> Dict[str, str]:
-    """Parse PORF spreadsheet, store rows and create a Sheets copy."""
+) -> IngestResult:
+    """Parse PORF spreadsheet, store rows and create a Sheets copy.
+    
+    Args:
+        upload_file: The uploaded file stream
+        drive: Drive service instance
+        sheets: Sheets service instance
+        
+    Returns:
+        Dictionary containing the PORF ID and sheet URL
+    """
     logger.debug("ingest_porf start")
 
     reader = csv.DictReader(BytesIO(upload_file.read()).read().decode().splitlines())
@@ -57,4 +72,4 @@ def ingest_porf(
     sheets.append_rows(sheet_id, canonical_rows)
 
     logger.info("ingest_porf success")
-    return {"porf_id": str(porf.id), "sheet_url": url}
+    return cast(IngestResult, {"porf_id": str(porf.id), "sheet_url": url})

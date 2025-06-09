@@ -2,7 +2,7 @@
 
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TypedDict, cast
 from google.oauth2.credentials import Credentials
 from sqlalchemy.orm import Session
 
@@ -11,13 +11,25 @@ from app.channels.base import ChannelInterface
 from app.channels.woot.models import WootPorf, WootPo, WootPorfLine, WootPoLine, WootPorfStatus, WootPoStatus, PORF, PO, PORFLine, POLine
 from app.core.services.google.drive import GoogleDriveService as DriveService
 from app.core.services.google.sheets import GoogleSheetsService as SheetsService
-from app.channels.woot.client import WootClient
+from app.channels.woot.client import WootClient, OrderData, InventoryItem
 from app.core.interfaces import BaseChannelOrderService
+
+class PorfData(TypedDict):
+    """Type for PORF data."""
+    porf_no: str
+    lines: List[Dict[str, Any]]
+
+class PoData(TypedDict):
+    """Type for PO data."""
+    po_no: str
+    expires_at: Optional[datetime]
+    ship_by: Optional[datetime]
+    lines: List[Dict[str, Any]]
 
 class WootService(ChannelInterface):
     """Service for Woot channel operations."""
     
-    def __init__(self, credentials: Credentials):
+    def __init__(self, credentials: Credentials) -> None:
         """Initialize the service.
         
         Args:
@@ -27,7 +39,6 @@ class WootService(ChannelInterface):
         self.sheets_service = SheetsService(credentials)
         self.woot_client = WootClient(
             api_key=os.environ['WOOT_API_KEY'],
-            api_secret=os.environ['WOOT_API_SECRET'],
             api_url=os.environ['WOOT_API_URL']
         )
     
@@ -41,7 +52,7 @@ class WootService(ChannelInterface):
             Created PORF instance
         """
         # Create PORF in Woot
-        woot_data = self.woot_client.create_porf(data)
+        woot_data = self.woot_client.create_order(data)
         
         # Create PORF in database
         porf = WootPorf(
@@ -79,7 +90,7 @@ class WootService(ChannelInterface):
         porf = WootPorf.query.get_or_404(porf_id)
         
         # Create PO in Woot
-        woot_data = self.woot_client.create_po(porf_id, data)
+        woot_data = self.woot_client.create_order(data)
         
         # Create PO in database
         po = WootPo(
@@ -121,19 +132,25 @@ class WootService(ChannelInterface):
         
         # Create folder if needed
         if not po.drive_file_id:
-            folder_id = self.drive_service.create_folder(f"PO-{po.po_no}")
+            folder_id = self.drive_service.create_file(
+                name=f"PO-{po.po_no}",
+                mime_type="application/vnd.google-apps.folder"
+            )['id']
             po.drive_folder_id = folder_id
             db.session.commit()
         
         # Upload file to Drive
         file_id = self.drive_service.upload_file(
             file_path=file_path,
-            name=os.path.basename(file_path),
-            parent_id=po.drive_folder_id
-        )
+            mime_type="application/pdf",
+            parents=[po.drive_folder_id]
+        )['id']
         
         # Upload file to Woot
-        self.woot_client.upload_po_file(po_id, file_path)
+        self.woot_client.create_order({
+            'po_id': po_id,
+            'file_path': file_path
+        })
         
         po.drive_file_id = file_id
         db.session.commit()
@@ -152,16 +169,14 @@ class WootService(ChannelInterface):
         porf = WootPorf.query.get_or_404(porf_id)
         
         # Create spreadsheet
-        spreadsheet_id = self.sheets_service.create_spreadsheet(
-            title=f"PORF-{porf.porf_no}",
-            sheets=[{'title': 'Lines', 'gridProperties': {'rowCount': 1000, 'columnCount': 10}}]
-        )
+        spreadsheet = self.sheets_service.create_sheet(f"PORF-{porf.porf_no}")
+        spreadsheet_id = spreadsheet['spreadsheetId']
         
         # Add headers
         headers = ['Product ID', 'Product Name', 'Quantity', 'Unit Price', 'Total Price']
-        self.sheets_service.update_values(
+        self.sheets_service.update_sheet_data(
             spreadsheet_id=spreadsheet_id,
-            range_name='Lines!A1:E1',
+            range_name='Sheet1!A1:E1',
             values=[headers]
         )
         
@@ -171,15 +186,15 @@ class WootService(ChannelInterface):
             rows.append([
                 line.product_id,
                 line.product_name,
-                line.quantity,
-                float(line.unit_price),
-                float(line.total_price)
+                str(line.quantity),
+                str(float(line.unit_price)),
+                str(float(line.total_price))
             ])
         
         if rows:
-            self.sheets_service.update_values(
+            self.sheets_service.update_sheet_data(
                 spreadsheet_id=spreadsheet_id,
-                range_name='Lines!A2',
+                range_name='Sheet1!A2',
                 values=rows
             )
         
@@ -201,7 +216,7 @@ class WootService(ChannelInterface):
         porf = WootPorf.query.get_or_404(porf_id)
         
         # Update status in Woot
-        self.woot_client.update_porf_status(porf_id, status)
+        self.woot_client.update_order(str(porf_id), {'status': status})
         
         # Update status in database
         porf.status = WootPorfStatus(status)
@@ -221,7 +236,7 @@ class WootService(ChannelInterface):
         po = WootPo.query.get_or_404(po_id)
         
         # Update status in Woot
-        self.woot_client.update_po_status(po_id, status)
+        self.woot_client.update_order(str(po_id), {'status': status})
         
         # Update status in database
         po.status = WootPoStatus(status)
@@ -262,7 +277,7 @@ class WootService(ChannelInterface):
         query = WootPorf.query
         if status:
             query = query.filter_by(status=WootPorfStatus(status))
-        return query.order_by(WootPorf.created_at.desc()).all()
+        return query.all()
     
     def list_pos(self, status: Optional[str] = None) -> List[WootPo]:
         """List POs.
@@ -276,13 +291,13 @@ class WootService(ChannelInterface):
         query = WootPo.query
         if status:
             query = query.filter_by(status=WootPoStatus(status))
-        return query.order_by(WootPo.created_at.desc()).all()
+        return query.all()
     
     def fetch_orders(self, start_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """Fetch orders from Woot.
         
         Args:
-            start_date: Optional start date for order fetch
+            start_date: Optional start date for filtering
             
         Returns:
             List of order data
@@ -298,55 +313,101 @@ class WootService(ChannelInterface):
         return self.woot_client.get_inventory()
 
 class WootOrderService(BaseChannelOrderService):
-    """Woot-specific implementation of the channel order service."""
+    """Service for Woot order operations."""
     
-    def __init__(self, db: Session, sheets_service: SheetsService):
+    def __init__(self, db: Session, sheets_service: SheetsService) -> None:
+        """Initialize the service.
+        
+        Args:
+            db: Database session
+            sheets_service: Google Sheets service
+        """
         self.db = db
         self.sheets_service = sheets_service
     
     def fetch_orders(self, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
-        """Fetch orders from Woot within the specified date range."""
-        porfs = self.db.query(PORF).filter(
-            PORF.created_at >= start_date,
-            PORF.created_at <= end_date
-        ).all()
-        return [porf.to_dict() for porf in porfs]
-    
-    def create_order(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new order in Woot."""
-        porf = PORF.from_dict(order_data)
-        self.db.add(porf)
-        self.db.commit()
-        self.db.refresh(porf)
-        return porf.to_dict()
-    
-    def update_order(self, order_id: str, order_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an existing order in Woot."""
-        porf = self.db.query(PORF).filter(PORF.external_id == order_id).first()
-        if not porf:
-            raise ValueError(f"Order {order_id} not found")
+        """Fetch orders from Woot.
         
-        for key, value in order_data.items():
-            setattr(porf, key, value)
-        
-        self.db.commit()
-        self.db.refresh(porf)
-        return porf.to_dict()
+        Args:
+            start_date: Start date
+            end_date: End date
+            
+        Returns:
+            List of orders
+        """
+        return self.woot_client.get_orders(start_date)
     
-    def get_order(self, order_id: str) -> Optional[Dict[str, Any]]:
-        """Get a single order by ID."""
-        porf = self.db.query(PORF).filter(PORF.external_id == order_id).first()
-        return porf.to_dict() if porf else None
+    def create_order(self, order_data: Dict[str, Any]) -> OrderData:
+        """Create a new order.
+        
+        Args:
+            order_data: Order data
+            
+        Returns:
+            Created order
+        """
+        return self.woot_client.create_order(order_data)
+    
+    def update_order(self, order_id: str, order_data: Dict[str, Any]) -> OrderData:
+        """Update an existing order.
+        
+        Args:
+            order_id: Order ID
+            order_data: Updated order data
+            
+        Returns:
+            Updated order
+        """
+        return self.woot_client.update_order(order_id, order_data)
+    
+    def get_order(self, order_id: str) -> Optional[OrderData]:
+        """Get a single order.
+        
+        Args:
+            order_id: Order ID
+            
+        Returns:
+            Order data if found, None otherwise
+        """
+        return self.woot_client.get_order(order_id)
     
     def get_order_status(self, order_id: str) -> str:
-        """Get the current status of an order."""
-        porf = self.db.query(PORF).filter(PORF.external_id == order_id).first()
-        if not porf:
-            raise ValueError(f"Order {order_id} not found")
-        return porf.status
+        """Get the status of an order.
+        
+        Args:
+            order_id: Order ID
+            
+        Returns:
+            Order status
+        """
+        return self.woot_client.get_order_status(order_id)
     
     def export_to_sheets(self, spreadsheet_id: str, range_name: str) -> None:
-        """Export orders to Google Sheets."""
-        porfs = self.db.query(PORF).all()
-        data = [porf.to_dict() for porf in porfs]
-        self.sheets_service.update_sheet_data(spreadsheet_id, range_name, data) 
+        """Export orders to a Google Sheet.
+        
+        Args:
+            spreadsheet_id: ID of the spreadsheet
+            range_name: Range to write to
+        """
+        orders = self.fetch_orders(
+            start_date=datetime.now() - timedelta(days=30),
+            end_date=datetime.now()
+        )
+        
+        rows = []
+        for order in orders:
+            rows.append([
+                order['id'],
+                order['status'],
+                order['created_at'],
+                order['updated_at'],
+                order['total'],
+                order['currency']
+            ])
+        
+        if rows:
+            self.sheets_service.update_sheet_data(
+                spreadsheet_id=spreadsheet_id,
+                range_name=range_name,
+                values=rows
+            ) 

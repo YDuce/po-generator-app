@@ -5,7 +5,7 @@ Layer: core
 
 import os
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, BinaryIO
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -36,7 +36,7 @@ class DriveService:
         self.files = self.service.files()
         logger.info("Drive service initialized")
 
-    def list_files(self, folder_id: Optional[str] = None) -> list:
+    def list_files(self, folder_id: str) -> list[FileMetadata]:
         """List files in Drive.
         
         Args:
@@ -57,10 +57,10 @@ class DriveService:
             logger.error(f"Error listing files: {e}")
             raise
 
-    def get_file(self, file_id: str) -> Dict[str, Any]:
+    def get_file(self, file_id: str, fields: str = '*') -> FileMetadata:
         """Get metadata for a specific file."""
         try:
-            return self.files.get(fileId=file_id, fields="id, name, mimeType").execute()
+            return self.files.get(fileId=file_id, fields=fields).execute()
         except HttpError as error:
             raise Exception(f"Error getting file: {error}")
 
@@ -77,9 +77,7 @@ class DriveService:
         except HttpError as error:
             raise Exception(f"Error downloading file: {error}")
 
-    def upload_file(
-        self, file_path: str, mime_type: str, name: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def upload_file(self, file_path: str, mime_type: str, parents: Optional[list[str]] = None) -> FileMetadata:
         """Upload a file to Google Drive."""
         try:
             file_metadata = {"name": name}
@@ -98,7 +96,7 @@ class DriveService:
         except HttpError as error:
             raise Exception(f"Error deleting file: {error}")
 
-    def create_folder(self, name: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+    def create_folder(self, name: str, parent_id: str) -> FileMetadata:
         """Create a folder in Drive.
         
         Args:

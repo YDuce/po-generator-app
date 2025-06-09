@@ -50,7 +50,7 @@ def sheets_service(mock_sheets_api):
     with patch('googleapiclient.discovery.build', return_value=mock_sheets_api):
         return SheetsService(None)
 
-def test_copy_template(sheets_service, mock_sheets_api):
+def test_copy_template(sheets_service, mock_sheets_api) -> None:
     """Test template copying."""
     # Copy template
     sheet_id, url = sheets_service.copy_template(
@@ -64,7 +64,7 @@ def test_copy_template(sheets_service, mock_sheets_api):
     assert url == 'https://docs.google.com/spreadsheets/d/Test Sheet_id'
     assert 'Test Sheet_id' in mock_sheets_api.spreadsheets
 
-def test_append_rows(sheets_service, mock_sheets_api):
+def test_append_rows(sheets_service, mock_sheets_api) -> None:
     """Test row appending."""
     # Create test sheet
     sheet_id = 'test_sheet_id'
@@ -83,7 +83,7 @@ def test_append_rows(sheets_service, mock_sheets_api):
     assert sheet_id in mock_sheets_api.values
     assert mock_sheets_api.values[sheet_id] == rows
 
-def test_get_spreadsheet(sheets_service, mock_sheets_api):
+def test_get_spreadsheet(sheets_service, mock_sheets_api) -> None:
     """Test spreadsheet retrieval."""
     # Create test sheet
     sheet_id = 'test_sheet_id'
@@ -98,10 +98,19 @@ def test_get_spreadsheet(sheets_service, mock_sheets_api):
     assert sheet['spreadsheetId'] == sheet_id
     assert sheet['properties']['title'] == 'Test Sheet'
 
-def test_get_spreadsheet_not_found(sheets_service, mock_sheets_api):
+def test_get_spreadsheet_not_found(sheets_service, mock_sheets_api) -> None:
     """Test spreadsheet retrieval when not found."""
     # Get non-existent spreadsheet
     sheet = sheets_service.get_spreadsheet('non_existent_id')
     
     # Verify None was returned
-    assert sheet is None 
+    assert sheet is None
+
+def test_sheets_service_init() -> None:
+    pass
+
+def test_sheets_service_get_data() -> None:
+    pass
+
+def test_sheets_service_update_data() -> None:
+    pass 

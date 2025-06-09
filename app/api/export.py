@@ -3,7 +3,7 @@
 Layer: api
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from app.core.services.sheets import SheetsService
 from app.core.services.drive import DriveService
 from app.core.models.product import MasterProduct, InventoryRecord
@@ -12,7 +12,7 @@ from app import db
 bp = Blueprint('export', __name__, url_prefix='/api/export')
 
 @bp.route('/sheets/products', methods=['POST'])
-def export_products_to_sheets():
+def export_products_to_sheets() -> Response:
     """Export products to Google Sheets."""
     data = request.get_json()
     spreadsheet_id = data.get('spreadsheet_id')
@@ -31,7 +31,7 @@ def export_products_to_sheets():
     return jsonify({'message': 'Export completed successfully'})
 
 @bp.route('/sheets/inventory', methods=['POST'])
-def export_inventory_to_sheets():
+def export_inventory_to_sheets() -> Response:
     """Export inventory records to Google Sheets."""
     data = request.get_json()
     spreadsheet_id = data.get('spreadsheet_id')
@@ -50,7 +50,7 @@ def export_inventory_to_sheets():
     return jsonify({'message': 'Export completed successfully'})
 
 @bp.route('/drive/products', methods=['POST'])
-def export_products_to_drive():
+def export_products_to_drive() -> Response:
     """Export products to Google Drive."""
     data = request.get_json()
     folder_id = data.get('folder_id')

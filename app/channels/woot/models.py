@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric, JSON, Enum as SQLEnum, Boolean, Text
 from sqlalchemy.orm import relationship
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TypedDict, cast
 
 from app import db
 from app.channels.base import ChannelModel
@@ -27,6 +27,86 @@ class WootPoStatus(str, Enum):
     CANCELLED = 'cancelled'
     COMPLETED = 'completed'
 
+class PorfDict(TypedDict):
+    """Type for PORF dictionary."""
+    id: int
+    status: str
+    warehouse_id: str
+    notes: Optional[str]
+    lines: List[Dict[str, Any]]
+
+class PorfLineDict(TypedDict):
+    """Type for PORF line dictionary."""
+    id: int
+    porf_id: int
+    product_id: str
+    quantity: int
+    unit_price: float
+    notes: Optional[str]
+
+class PoDict(TypedDict):
+    """Type for PO dictionary."""
+    id: int
+    porf_id: int
+    status: str
+    warehouse_id: str
+    notes: Optional[str]
+    lines: List[Dict[str, Any]]
+
+class PoLineDict(TypedDict):
+    """Type for PO line dictionary."""
+    id: int
+    po_id: int
+    porf_line_id: int
+    product_id: str
+    quantity: int
+    unit_price: float
+    notes: Optional[str]
+
+class WootPorfDict(TypedDict):
+    """Type for Woot PORF dictionary."""
+    id: int
+    porf_no: str
+    status: WootPorfStatus
+    total_value: float
+    created_at: str
+    updated_at: str
+    sheets_file_id: Optional[str]
+    lines: List[Dict[str, Any]]
+
+class WootPoDict(TypedDict):
+    """Type for Woot PO dictionary."""
+    id: int
+    po_no: str
+    porf_id: int
+    status: WootPoStatus
+    total_ordered: float
+    created_at: str
+    updated_at: str
+    expires_at: Optional[str]
+    ship_by: Optional[str]
+    drive_file_id: Optional[str]
+    drive_folder_id: Optional[str]
+    lines: List[Dict[str, Any]]
+
+class WootPorfLineDict(TypedDict):
+    """Type for Woot PORF line dictionary."""
+    id: int
+    product_id: str
+    product_name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
+class WootPoLineDict(TypedDict):
+    """Type for Woot PO line dictionary."""
+    id: int
+    product_id: str
+    product_name: str
+    quantity: int
+    unit_price: float
+    total_price: float
+
 class PORF(BaseModel):
     """Purchase Order Request Form model."""
     __tablename__ = 'woot_porfs'
@@ -38,9 +118,9 @@ class PORF(BaseModel):
     # Relationships
     lines = relationship('PORFLine', back_populates='porf', cascade='all, delete-orphan')
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> PorfDict:
         """Convert PORF to dictionary."""
-        data = super().to_dict()
+        data = cast(PorfDict, super().to_dict())
         data['lines'] = [line.to_dict() for line in self.lines]
         return data
 
@@ -57,9 +137,9 @@ class PORFLine(BaseModel):
     # Relationships
     porf = relationship('PORF', back_populates='lines')
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> PorfLineDict:
         """Convert PORFLine to dictionary."""
-        return super().to_dict()
+        return cast(PorfLineDict, super().to_dict())
 
 class PO(BaseModel):
     """Purchase Order model."""
@@ -74,9 +154,9 @@ class PO(BaseModel):
     porf = relationship('PORF')
     lines = relationship('POLine', back_populates='po', cascade='all, delete-orphan')
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> PoDict:
         """Convert PO to dictionary."""
-        data = super().to_dict()
+        data = cast(PoDict, super().to_dict())
         data['lines'] = [line.to_dict() for line in self.lines]
         return data
 
@@ -95,9 +175,9 @@ class POLine(BaseModel):
     po = relationship('PO', back_populates='lines')
     porf_line = relationship('PORFLine')
     
-    def to_dict(self) -> dict:
+    def to_dict(self) -> PoLineDict:
         """Convert POLine to dictionary."""
-        return super().to_dict()
+        return cast(PoLineDict, super().to_dict())
 
 class WootPorf(db.Model, ChannelModel):
     """Woot PORF model."""
@@ -127,13 +207,13 @@ class WootPorf(db.Model, ChannelModel):
         """Get the status enum class."""
         return WootPorfStatus
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> WootPorfDict:
         """Convert to dictionary.
         
         Returns:
             Dictionary representation
         """
-        return {
+        return cast(WootPorfDict, {
             'id': self.id,
             'porf_no': self.porf_no,
             'status': self.status,
@@ -142,7 +222,7 @@ class WootPorf(db.Model, ChannelModel):
             'updated_at': self.updated_at.isoformat(),
             'sheets_file_id': self.sheets_file_id,
             'lines': [line.to_dict() for line in self.lines]
-        }
+        })
 
 class WootPo(db.Model, ChannelModel):
     """Woot PO model."""
@@ -174,13 +254,13 @@ class WootPo(db.Model, ChannelModel):
         """Get the status enum class."""
         return WootPoStatus
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> WootPoDict:
         """Convert to dictionary.
         
         Returns:
             Dictionary representation
         """
-        return {
+        return cast(WootPoDict, {
             'id': self.id,
             'po_no': self.po_no,
             'porf_id': self.porf_id,
@@ -193,7 +273,7 @@ class WootPo(db.Model, ChannelModel):
             'drive_file_id': self.drive_file_id,
             'drive_folder_id': self.drive_folder_id,
             'lines': [line.to_dict() for line in self.lines]
-        }
+        })
 
 class WootPorfLine(db.Model):
     """Woot PORF line model."""
@@ -211,20 +291,20 @@ class WootPorfLine(db.Model):
     # Relationships
     porf = relationship('WootPorf', back_populates='lines')
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> WootPorfLineDict:
         """Convert to dictionary.
         
         Returns:
             Dictionary representation
         """
-        return {
+        return cast(WootPorfLineDict, {
             'id': self.id,
             'product_id': self.product_id,
             'product_name': self.product_name,
             'quantity': self.quantity,
             'unit_price': float(self.unit_price),
             'total_price': float(self.total_price)
-        }
+        })
 
 class WootPoLine(db.Model):
     """Woot PO line model."""
@@ -242,17 +322,17 @@ class WootPoLine(db.Model):
     # Relationships
     po = relationship('WootPo', back_populates='lines')
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> WootPoLineDict:
         """Convert to dictionary.
         
         Returns:
             Dictionary representation
         """
-        return {
+        return cast(WootPoLineDict, {
             'id': self.id,
             'product_id': self.product_id,
             'product_name': self.product_name,
             'quantity': self.quantity,
             'unit_price': float(self.unit_price),
             'total_price': float(self.total_price)
-        } 
+        }) 

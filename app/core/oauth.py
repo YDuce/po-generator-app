@@ -10,6 +10,7 @@ from flask_dance.consumer import oauth_authorized, oauth_error
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage
 from sqlalchemy.orm.exc import NoResultFound
 from flask_login import current_user
+from flask_dance.contrib.google import Blueprint
 
 from app.core.models.user import User
 from app import db
@@ -21,7 +22,7 @@ __all__ = ["google", "google_bp", "create_google_bp", "init_oauth"]
 # Stub for google_bp to satisfy import in tests/conftest.py
 google_bp = None
 
-def create_google_bp():
+def create_google_bp() -> Blueprint:
     """Create and configure the Google OAuth blueprint.
     
     Returns:
@@ -46,14 +47,14 @@ def create_google_bp():
     
     # Set up OAuth error handling
     @oauth_error.connect_via(google_bp)
-    def google_error(blueprint, message, response):
+    def google_error(blueprint, message, response) -> None:
         """Handle OAuth errors."""
         logger.error("OAuth error: %s", message)
         return redirect(url_for("auth.login_error"))
     
     return google, google_bp
 
-def init_oauth(app):
+def init_oauth(app) -> None:
     """Initialize OAuth configuration.
     
     Args:

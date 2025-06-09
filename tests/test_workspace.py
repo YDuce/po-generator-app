@@ -2,7 +2,7 @@ from app.core.services.drive import DriveService
 import types
 
 
-def test_ensure_workspace(monkeypatch):
+def test_ensure_workspace(monkeypatch) -> None:
     created = []
     flags = {
         "root": False,
@@ -62,4 +62,13 @@ def test_ensure_workspace(monkeypatch):
         ("woot", "Your-App-Workspace-1_id"),
         ("porfs", "woot_id"),
         ("pos", "woot_id"),
-    ] 
+    ]
+
+def test_workspace_setup() -> None:
+    pass
+
+def test_workspace_teardown() -> None:
+    pass
+
+def test_workspace_reload() -> None:
+    pass 

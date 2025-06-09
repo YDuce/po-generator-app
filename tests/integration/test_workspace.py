@@ -4,7 +4,7 @@ import pytest
 from app.models.user import User
 from app.core.models.organisation import Organisation
 
-def test_workspace_creation(client, db_session, mock_drive_service):
+def test_workspace_creation(client, db_session, mock_drive_service) -> None:
     """Test workspace creation flow."""
     # Create test user
     user = User(
@@ -38,7 +38,7 @@ def test_workspace_creation(client, db_session, mock_drive_service):
     mock_drive_service.ensure_subfolder.assert_any_call(workspace_id, 'porfs')
     mock_drive_service.ensure_subfolder.assert_any_call(workspace_id, 'pos')
 
-def test_workspace_retrieval(client, db_session, mock_drive_service):
+def test_workspace_retrieval(client, db_session, mock_drive_service) -> None:
     """Test workspace retrieval flow."""
     # Create test user and organisation
     user = User(
@@ -63,7 +63,7 @@ def test_workspace_retrieval(client, db_session, mock_drive_service):
     assert response.status_code == 200
     assert response.json['workspace_id'] == 'test_workspace_id'
 
-def test_workspace_not_found(client, db_session):
+def test_workspace_not_found(client, db_session) -> None:
     """Test workspace retrieval when not found."""
     # Create test user without organisation
     user = User(
@@ -83,7 +83,7 @@ def test_workspace_not_found(client, db_session):
     assert response.status_code == 404
     assert response.json['error'] == 'Workspace not found'
 
-def test_workspace_creation_error(client, db_session, mock_drive_service):
+def test_workspace_creation_error(client, db_session, mock_drive_service) -> None:
     """Test workspace creation error handling."""
     # Create test user
     user = User(
