@@ -2,7 +2,7 @@
 
 import pytest
 from app.models.user import User
-from app.models.organisation import Organisation
+from app.core.models.organisation import Organisation
 
 def test_workspace_creation(client, db_session, mock_drive_service):
     """Test workspace creation flow."""

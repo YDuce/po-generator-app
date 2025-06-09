@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 from app.models.user import User
-from app.models.organisation import Organisation
+from app.core.models.organisation import Organisation
 from app.channels.woot.models import WootPorf, WootPorfLine, WootPorfStatus
 
 def test_user_model(db_session):
