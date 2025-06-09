@@ -6,16 +6,18 @@ from app.core.models.order import (
     PurchaseOrder,
     PurchaseOrderItem,
     PurchaseOrderRequest,
-    PurchaseOrderRequestItem
+    PurchaseOrderRequestItem,
 )
+from app.core.models.organisation import Organisation
 
 __all__ = [
-    'Base',
-    'BaseModel',
-    'MasterProduct',
-    'InventoryRecord',
-    'PurchaseOrder',
-    'PurchaseOrderItem',
-    'PurchaseOrderRequest',
-    'PurchaseOrderRequestItem'
-] 
+    "Base",
+    "BaseModel",
+    "MasterProduct",
+    "InventoryRecord",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
+    "PurchaseOrderRequest",
+    "PurchaseOrderRequestItem",
+    "Organisation",
+]

@@ -1,82 +1,60 @@
-"""Authentication API endpoints.
+"""OAuth login endpoints.
 
 Layer: api
 """
-from flask import Blueprint, request, jsonify, current_app
-from app.core.auth.service import AuthService
+
+from __future__ import annotations
+
+import os
+from flask import Blueprint, redirect, url_for, jsonify, current_app, request
+from flask_dance.contrib.google import make_google_blueprint, google
+
 from app import db
+from app.core.auth.service import AuthService
 
-bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
-def get_auth_service() -> AuthService:
-    """Get the auth service instance."""
-    return AuthService(db.session, current_app.config['SECRET_KEY'])
+google_bp = make_google_blueprint(
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    scope=["profile", "email"],
+    redirect_url="/api/auth/login/google",
+)
+bp.register_blueprint(google_bp, url_prefix="/login")
 
-@bp.route('/register', methods=['POST'])
-def register():
-    """Register a new user."""
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    if not email or not password:
-        return jsonify({'error': 'email and password are required'}), 400
-    
-    service = get_auth_service()
-    try:
-        user = service.create_user(email, password)
-        token = service.create_token(user)
-        return jsonify({
-            'token': token,
-            'user': user.to_dict()
-        }), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
 
-@bp.route('/login', methods=['POST'])
-def login():
-    """Login a user."""
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    if not email or not password:
-        return jsonify({'error': 'email and password are required'}), 400
-    
-    service = get_auth_service()
-    user = service.authenticate(email, password)
-    if not user:
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    token = service.create_token(user)
-    return jsonify({
-        'token': token,
-        'user': user.to_dict()
-    })
+def _service() -> AuthService:
+    return AuthService(db.session, current_app.config["SECRET_KEY"])
 
-@bp.route('/logout', methods=['POST'])
-def logout():
-    """Logout a user."""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({'error': 'Invalid authorization header'}), 401
-    
-    token = auth_header.split(' ')[1]
-    service = get_auth_service()
-    service.revoke_token(token)
-    return jsonify({'message': 'Logged out successfully'})
 
-@bp.route('/me', methods=['GET'])
+@bp.route("/login/google")
+def login_google():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    resp = google.get("/oauth2/v2/userinfo")
+    data = resp.json()
+    token = _service().upsert_user(data["id"], data["email"], data.get("name", ""))
+    return jsonify({"token": token})
+
+
+@bp.route("/me", methods=["GET"])
 def get_current_user():
-    """Get the current user."""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({'error': 'Invalid authorization header'}), 401
-    
-    token = auth_header.split(' ')[1]
-    service = get_auth_service()
-    user = service.verify_token(token)
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Invalid authorization header"}), 401
+
+    token = auth_header.split(" ")[1]
+    user = _service().verify_token(token)
     if not user:
-        return jsonify({'error': 'Invalid token'}), 401
-    
-    return jsonify(user.to_dict()) 
+        return jsonify({"error": "Invalid token"}), 401
+    return jsonify(user.to_dict())
+
+
+@bp.route("/logout", methods=["POST"])
+def logout():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Invalid authorization header"}), 401
+    token = auth_header.split(" ")[1]
+    _service().revoke_token(token)
+    return jsonify({"message": "Logged out"})

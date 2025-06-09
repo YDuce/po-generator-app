@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 
 from app import db
 from app.channels.woot.models import (
@@ -34,8 +35,16 @@ def porf_upload():
     if "file" not in request.files:
         return jsonify({"error": "file required"}), 400
     file = request.files["file"]
-    drive = DriveService(None)  # TODO: credentials
-    sheets = SheetsService(None)
+    key = os.environ.get("GOOGLE_SVC_KEY")
+    creds = service_account.Credentials.from_service_account_file(
+        key,
+        scopes=[
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/spreadsheets",
+        ],
+    )
+    drive = DriveService(creds)
+    sheets = SheetsService(creds)
     result = ingest_porf(file.stream, drive, sheets)
     return jsonify(result), 201
 
@@ -56,7 +65,12 @@ def get_woot_service() -> WootService:
 def get_service() -> WootOrderService:
     """Get the Woot order service instance."""
     session = db.session
-    sheets_service = SheetsService(None)  # TODO: Get credentials from config
+    key = os.environ.get("GOOGLE_SVC_KEY")
+    creds = service_account.Credentials.from_service_account_file(
+        key,
+        scopes=["https://www.googleapis.com/auth/spreadsheets"],
+    )
+    sheets_service = SheetsService(creds)
     return WootOrderService(session, sheets_service)
 
 

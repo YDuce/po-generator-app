@@ -1,4 +1,6 @@
 from typing import List, Dict, Any, Optional
+from app import db
+from app.core.models.organisation import Organisation
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -85,17 +87,34 @@ class DriveService:
     # Convenience helpers used by channel logic
     # ------------------------------------------------------------------
     def ensure_workspace(self, org_id: str) -> str:
-        """Return the workspace folder for an organisation."""
+        """Return the workspace folder for an organisation and channel sub-folders."""
         query = (
             f"name = 'Your-App-Workspace-{org_id}' and "
             "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         )
         existing = self.list_files(query)
         if existing:
-            return existing[0]["id"]
+            root_id = existing[0]["id"]
+        else:
+            root_id = self.create_folder(f"Your-App-Workspace-{org_id}")["id"]
 
-        folder = self.create_folder(f"Your-App-Workspace-{org_id}")
-        return folder["id"]
+        org = db.session.query(Organisation).get(int(org_id))
+        if org:
+            if org.workspace_folder_id != root_id:
+                org.workspace_folder_id = root_id
+                db.session.commit()
+        else:
+            org = Organisation(
+                id=int(org_id), name=str(org_id), workspace_folder_id=root_id
+            )
+            db.session.add(org)
+            db.session.commit()
+
+        woot_root = self.ensure_subfolder(root_id, "woot")
+        self.ensure_subfolder(woot_root, "porfs")
+        self.ensure_subfolder(woot_root, "pos")
+
+        return root_id
 
     def ensure_subfolder(self, parent_id: str, name: str) -> str:
         """Return sub-folder ``name`` under ``parent_id``."""
