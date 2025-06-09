@@ -1,2 +1,6 @@
 /.cursorrules
 /.env
+*.db
+*.xlsx
+*.pyc
+.DS_Store

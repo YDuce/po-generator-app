@@ -24,6 +24,35 @@ app/
 └─ main.py            # Application factory
 ```
 
+# Prerequisites
+
+- Python 3.11.8 (see `.python-version` for the exact version pin)
+- For Windows users: Download Python 3.11.8 from [python.org](https://www.python.org/downloads/release/python-3118/)
+- For Unix/Mac users: Use [pyenv](https://github.com/pyenv/pyenv) to manage Python versions
+
+## Setting up your environment
+
+### Windows
+1. Install Python 3.11.8 from [python.org](https://www.python.org/downloads/release/python-3118/)
+2. Run the setup script:
+   ```powershell
+   .\scripts\setup_test_env.ps1
+   ```
+
+### Unix/Mac
+1. Install Python 3.11 (e.g., `pyenv install 3.11.8`)
+2. Create a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+The `.python-version` file is used by `pyenv` to automatically select the correct Python version.
+
 ## Setup
 
 1. Create a virtual environment:

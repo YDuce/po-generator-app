@@ -1,0 +1,75 @@
+"""
+Test configuration and credentials management.
+This module provides test-specific configuration and credential management
+for both mocked and real API testing scenarios.
+"""
+
+import os
+from pathlib import Path
+
+# Test credentials and configuration
+TEST_CONFIG = {
+    # Google OAuth test credentials
+    'GOOGLE_CLIENT_ID': 'test-client-id',
+    'GOOGLE_CLIENT_SECRET': 'test-client-secret',
+    'GOOGLE_REDIRECT_URI': 'http://localhost:5000/auth/callback/google',
+    
+    # Test workspace configuration
+    'WORKSPACE_ROOT': 'Your-App-Workspace-Test',
+    'WORKSPACE_FOLDERS': ['woot', 'porfs', 'pos'],
+    
+    # Test file paths
+    'TEST_FILES_DIR': Path(__file__).parent / 'test_files',
+    
+    # Database configuration
+    'DATABASE_URL': 'sqlite:///test.db',
+    'FLASK_ENV': 'testing',
+    'SECRET_KEY': 'test-secret-key',
+    
+    # Mock API responses
+    'MOCK_DRIVE_RESPONSES': {
+        'list_files': [],
+        'create_folder': {'id': 'mock_folder_id'},
+        'upload_file': {'id': 'mock_file_id'},
+    },
+    'MOCK_SHEETS_RESPONSES': {
+        'create_spreadsheet': {'id': 'mock_sheet_id'},
+    },
+}
+
+def setup_test_environment():
+    """Set up test environment variables and directories."""
+    # Set test environment variables
+    for key, value in TEST_CONFIG.items():
+        if isinstance(value, (str, int, bool)):
+            os.environ[key] = str(value)
+    
+    # Create test files directory if it doesn't exist
+    TEST_CONFIG['TEST_FILES_DIR'].mkdir(exist_ok=True)
+    
+    # Create test files
+    test_files = {
+        'test_porf.csv': 'product_id,product_name,quantity,unit_price\n1,Test Product,10,100.00',
+        'test_po.csv': 'product_id,product_name,quantity,unit_price\n1,Test Product,5,100.00',
+    }
+    
+    for filename, content in test_files.items():
+        file_path = TEST_CONFIG['TEST_FILES_DIR'] / filename
+        if not file_path.exists():
+            with open(file_path, 'w') as f:
+                f.write(content)
+
+def get_test_credentials():
+    """Get test credentials for API testing."""
+    return {
+        'client_id': TEST_CONFIG['GOOGLE_CLIENT_ID'],
+        'client_secret': TEST_CONFIG['GOOGLE_CLIENT_SECRET'],
+        'redirect_uri': TEST_CONFIG['GOOGLE_REDIRECT_URI'],
+    }
+
+def get_mock_responses():
+    """Get mock API responses for testing."""
+    return {
+        'drive': TEST_CONFIG['MOCK_DRIVE_RESPONSES'],
+        'sheets': TEST_CONFIG['MOCK_SHEETS_RESPONSES'],
+    } 

@@ -14,23 +14,39 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from alembic.config import Config
 from alembic import command
+from flask_login import FlaskLoginClient
+from app.core import oauth
+from app.core.oauth import google_bp
+from app.api import catalog_bp, export_bp, auth_bp
+from app.channels.woot.routes import bp as woot_bp
+from tests.test_config import setup_test_environment, TEST_CONFIG
 
 # ------------------------------------------------------------------
-# Database – use sqlite:///:memory: for each test session
+# Database – use sqlite:///test.db for each test session
 # ------------------------------------------------------------------
-TEST_DB_URL = "sqlite:///:memory:"
-
+TEST_DB_URL = TEST_CONFIG['DATABASE_URL']
 
 @pytest.fixture(scope="session")
 def engine():
+    """Create a test database engine."""
+    # Remove any existing test DB file
+    if os.path.exists("test.db"):
+        os.remove("test.db")
+    
+    # Create engine
     eng = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
-    # Run Alembic migrations against the in-memory DB
+    
+    # Run Alembic migrations against the file-based DB
     alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
     command.upgrade(alembic_cfg, "head")
+    
     yield eng
+    
+    # Cleanup
     eng.dispose()
-
+    if os.path.exists("test.db"):
+        os.remove("test.db")
 
 @pytest.fixture(scope="session")
 def db_session(engine):
@@ -39,21 +55,81 @@ def db_session(engine):
     yield Session
     Session.remove()
 
-
 # ------------------------------------------------------------------
 # Flask app + client that use the same in-memory DB
 # ------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.main import create_app
 
-
 @pytest.fixture(scope="session")
 def app(engine):
-    os.environ["DATABASE_URL"] = TEST_DB_URL
-    application = create_app("testing")
+    """Create and configure a Flask app for testing."""
+    # Set up test environment
+    setup_test_environment()
+    
+    # Create app with test config
+    application = create_app("app.config.TestingConfig")
+    
+    # Register blueprints
+    application.register_blueprint(google_bp, url_prefix="/auth")
+    application.register_blueprint(auth_bp, url_prefix="/api/auth")
+    application.register_blueprint(catalog_bp, url_prefix="/api/catalog")
+    application.register_blueprint(export_bp, url_prefix="/api/export")
+    application.register_blueprint(woot_bp, url_prefix="/api/woot")
+    
     return application
-
 
 @pytest.fixture(scope="function")
 def client(app):
-    return app.test_client()
+    """Create a test client for the app."""
+    return app.test_client(use_cookies=True)
+
+@pytest.fixture(scope="function")
+def auth_client(app):
+    """Create an authenticated test client."""
+    return app.test_client(use_cookies=True, cls=FlaskLoginClient)
+
+@pytest.fixture(scope="function")
+def mock_drive_service(monkeypatch):
+    """Mock the Drive service for testing."""
+    class MockDriveService:
+        def __init__(self, *args, **kwargs):
+            self.created = {}
+            self.files = {}
+        
+        def list_files(self, query=None):
+            if query and "name = 'woot'" in query:
+                return [{"id": "woot_folder_id"}]
+            return []
+        
+        def create_folder(self, name, parent_id=None):
+            folder_id = f"{name}_id"
+            self.created[(parent_id, name)] = folder_id
+            return {"id": folder_id}
+        
+        def ensure_workspace(self, org_id):
+            return "workspace_id"
+        
+        def ensure_subfolder(self, parent_id, name):
+            return f"{name}_folder_id"
+    
+    monkeypatch.setattr("app.core.services.drive.DriveService", MockDriveService)
+    return MockDriveService()
+
+@pytest.fixture(scope="function")
+def mock_sheets_service(monkeypatch):
+    """Mock the Sheets service for testing."""
+    class MockSheetsService:
+        def __init__(self, *args, **kwargs):
+            self.created = {}
+        
+        def copy_template(self, template_id, name, folder_id):
+            sheet_id = f"{name}_sheet_id"
+            self.created[sheet_id] = {"name": name, "folder_id": folder_id}
+            return sheet_id, f"https://docs.google.com/spreadsheets/d/{sheet_id}"
+        
+        def append_rows(self, sheet_id, rows):
+            pass
+    
+    monkeypatch.setattr("app.core.services.sheets.SheetsService", MockSheetsService)
+    return MockSheetsService()

@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from google.oauth2.credentials import Credentials
+import logging
 
 from app import db
 from app.channels.woot.models import (
@@ -21,11 +22,15 @@ from app.channels.woot.models import (
 )
 from app.channels.woot.service import WootService, WootOrderService
 from app.channels.woot.logic import ingest_porf
-from app.auth.service import AuthService
+from app.core import oauth
 from app.core.services.sheets import SheetsService
 from app.core.services.drive import DriveService
+from app.core.auth.service import AuthService
+from app.models.user import User
+from app.models.organisation import Organisation
 
 bp = Blueprint("woot", __name__, url_prefix="/api/woot")
+logger = logging.getLogger(__name__)
 
 
 @bp.route("/porf-upload", methods=["POST"])
@@ -46,10 +51,9 @@ def get_woot_service() -> WootService:
     Returns:
         WootService instance
     """
-    auth_service = AuthService(db.session)
-    credentials = auth_service.get_oauth_token(current_user.id, "google")
-    if not credentials:
-        raise ValueError("Google credentials not found")
+    # TODO: Integrate with real Google OAuth/session credentials
+    # For now, pass None or retrieve from current_user if available
+    credentials = None  # Replace with real credential retrieval
     return WootService(credentials)
 
 
@@ -299,3 +303,57 @@ def get_inventory():
     except Exception as e:
         current_app.logger.error(f"Error getting inventory: {str(e)}")
         return jsonify({"error": str(e)}), 400
+
+
+def get_drive_service():
+    """Get the Drive service instance."""
+    return DriveService(current_user.google_credentials)
+
+
+def get_sheets_service():
+    """Get the Sheets service instance."""
+    return SheetsService(current_user.google_credentials)
+
+
+@bp.route("/workspace", methods=["POST"])
+@login_required
+def create_workspace():
+    """Create a workspace and return its ID."""
+    try:
+        # Get or create organisation
+        org = Organisation.query.filter_by(name=current_user.email.split('@')[0]).first()
+        if not org:
+            org = Organisation(name=current_user.email.split('@')[0])
+            db.session.add(org)
+            db.session.commit()
+        
+        # Create workspace
+        drive = get_drive_service()
+        workspace_id = drive.ensure_workspace(str(org.id))
+        
+        # Update organisation with workspace ID
+        if org.workspace_folder_id != workspace_id:
+            org.workspace_folder_id = workspace_id
+            db.session.commit()
+        
+        return jsonify({"workspace_id": workspace_id}), 201
+    
+    except Exception as e:
+        logger.error("Workspace creation failed: %s", str(e))
+        return jsonify({"error": "Failed to create workspace"}), 500
+
+
+@bp.route("/workspace", methods=["GET"])
+@login_required
+def get_workspace():
+    """Get the current user's workspace ID."""
+    try:
+        org = Organisation.query.filter_by(name=current_user.email.split('@')[0]).first()
+        if not org or not org.workspace_folder_id:
+            return jsonify({"error": "Workspace not found"}), 404
+        
+        return jsonify({"workspace_id": org.workspace_folder_id})
+    
+    except Exception as e:
+        logger.error("Workspace retrieval failed: %s", str(e))
+        return jsonify({"error": "Failed to retrieve workspace"}), 500

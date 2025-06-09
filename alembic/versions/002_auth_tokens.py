@@ -1,5 +1,5 @@
 """
-Add user and oauth_token tables for Woot-MVP v2.4
+Add users and oauth_token tables for Woot-MVP v2.4
 """
 
 from alembic import op
@@ -15,7 +15,7 @@ depends_on = None
 
 def upgrade():
     op.create_table(
-        "user",
+        "users",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("email", sa.String, unique=True, nullable=False),
         sa.Column("password_hash", sa.String, nullable=False),
@@ -26,7 +26,7 @@ def upgrade():
     op.create_table(
         "oauth_token",
         sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("user_id", sa.Integer, sa.ForeignKey("user.id"), nullable=False),
+        sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id"), nullable=False),
         sa.Column("provider", sa.String, nullable=False),
         sa.Column("access_token", sa.String, nullable=False),
         sa.Column("refresh_token", sa.String, nullable=True),
@@ -39,7 +39,7 @@ def upgrade():
         op.execute(
             sa.text(
                 """
-                INSERT INTO "user" (email, password_hash, created_at)
+                INSERT INTO "users" (email, password_hash, created_at)
                 VALUES (:email, :pw_hash, CURRENT_TIMESTAMP)
             """
             ).bindparams(email=admin_email, pw_hash=pw_hash)
@@ -48,4 +48,4 @@ def upgrade():
 
 def downgrade():
     op.drop_table("oauth_token")
-    op.drop_table("user")
+    op.drop_table("users")

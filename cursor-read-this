@@ -1,0 +1,1095 @@
+here is a prompt That I used to consolidate three versions into one
+
+You are Codex. Work on the **current cursor branch** (the one that contains Version-2’s merge mess).
+
+════════ WHAT TO BUILD NOW ═══════════════════════════════════
+0 ▸ BASELINE RESET  
+    • `git reset --hard main` – start from Version-1 (known-good).  
+
+1 ▸ PORT THE v3 DELTAS (keep everything else from v1)  
+    ⤷  copy-apply only these files / edits from feature/v3-app-factory:  
+      ─ app/__init__.py                     (new application factory)  
+      ─ app/services/auth.py                (DB-only upsert helper)  
+      ─ app/api/auth.py                     ▸ keep v1 body, then add  
+           • google_callback route → uses services.auth.upsert_user()  
+           • replace all raw `os.getenv` with `current_app.config["GOOGLE_CREDENTIALS"]`  
+      ─ app/api/export.py                   • same credential injection  
+      ─ app/channels/woot/routes.py         • same credential injection  
+      ─ app/core/services/{drive,sheets}.py • keep Organisation logic, only
+                                              switch credential source + add
+                                              `logger = logging.getLogger(__name__)`  
+      ─ tests/integration/test_google_oauth.py  
+      ─ tests/unit/test_drive_service.py  
+      ─ delete obsolete bootstrap: app/main.py  
+      ─ delete compatibility shims no longer needed:  
+           app/auth/{__init__.py,routes.py,service.py}
+
+2 ▸ DEPENDENCIES & TOOLING  
+    • requirements.txt – ensure (add if missing):  
+        Werkzeug<3.0   alembic  flask-migrate  PyJWT  python-dateutil  
+        types-google-auth  types-requests  types-PyJWT  
+    • `.flake8` already capped at 120 cols.  
+    • keep stub packages under `stubs/` so mypy strict passes.  
+
+3 ▸ WORKSPACE PROVISIONING (DriveService.ensure_workspace)  
+    • retain idempotent creation of  
+        Your-App-Workspace-<orgId>/woot/{porfs,pos}  
+      **and** ORM update of `Organisation.workspace_folder_id`.  
+    • tests/unit/test_drive_service.py must stay green.
+
+4 ▸ GOOGLE OAUTH FLOW  
+    • Blueprint registered in create_app():  
+        `app.register_blueprint(google_bp, url_prefix="/api/auth")`  
+    • Minimal integration test already provided – must pass.
+
+5 ▸ CODE HYGIENE  
+    • every public .py has `logger = logging.getLogger(__name__)`.  
+    • run: `black . && flake8 && mypy --strict && pytest -q`.  
+    • remove / .gitignore any `*.pyc`, `.DS_Store`, temporary *.xlsx.  
+
+════════ CI & COMMIT STRATEGY ═══════════════════════════════
+*The goal is a completely green build.*  
+If any flake8, mypy or pytest errors remain after you’ve tried to fix them,  
+**do not block the commit** – but list the exact counts & first traceback.
+
+════════ DELIVERABLE ════════════════════════════════════════
+• `git add -A`  
+• `git commit -m "refactor: restore v1 baseline, port v3 app-factory"`  
+• `git push -u origin HEAD`  
+• Open / update PR to **cursor** titled  
+  `refactor: v1 baseline + v3 improvements; tests ${GREEN|RED}`  
+• PR body must include:  
+    – pytest failures (0 expected) and sample traceback (if any)  
+    – mypy error count (0 expected)  
+    – checklist of TODOs still open (if any)
+
+# End of prompt – Codex must execute everything above 
+
+.flake8
++2
+-1
+
+[flake8]
+exclude = alembic/versions/*
+ignore = W291,W292,W293,E302,E501,F401 
+extend-select = B
+max-line-length = 120
+alembic/env.py
++1
+-1
+
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
+from alembic import context
+
+from database import Base
+from app.core.models.base import Base
+
+# from models import *  # REMOVE this star import for flake8 compliance
+# If explicit models are needed for autogeneration, import them here
+# from models.product import Product
+# from models.porf import PORF
+# ...
+
+# Import models here for Alembic autogeneration
+# Example: from app.models.base import Base
+# from app.channels.woot.models import WootPorf, WootPo
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# add your model's MetaData object here
+# for 'autogenerate' support
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+target_metadata = Base.metadata
+alembic/versions/009_add_organisation.py
+New
++35
+-0
+
+"""add organisation table"""
+
+from alembic import op
+import sqlalchemy as sa
+
+revision = "009_add_organisation"
+down_revision = "008_add_auth_models"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        "organisations",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("name", sa.String(length=100), nullable=False),
+        sa.Column("workspace_folder_id", sa.String(length=255), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.UniqueConstraint("name"),
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("organisations")
+app/__init__.py
++30
+-28
+
+"""Flask application factory."""
+
+import os
+import logging
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager
+from flask_migrate import Migrate
+from flask_cors import CORS
+
+# Initialize extensions
+db = SQLAlchemy()
+login_manager = LoginManager()
+migrate = Migrate()
+
+logger = logging.getLogger(__name__)
+
+
+def create_app(test_config=None):
+    """Create and configure the Flask application.
+    
+    Args:
+        test_config: Optional test configuration
+        
+    Returns:
+        Configured Flask application
+    """
+    """Create and configure the Flask application."""
+    app = Flask(__name__, instance_relative_config=True)
+    
+    # Load configuration
+
+    if test_config is None:
+        app.config.from_object('app.config.Config')
+    else:
+        app.config.from_object("app.config.Config")
+    elif isinstance(test_config, dict):
+        app.config.update(test_config)
+    
+    # Ensure instance folder exists
+    else:
+        app.config.from_object(test_config)
+
+    try:
+        os.makedirs(app.instance_path)
+        os.makedirs(app.instance_path, exist_ok=True)
+    except OSError:
+        pass
+    
+    # Initialize extensions with app
+
+    db.init_app(app)
+    login_manager.init_app(app)
+    migrate.init_app(app, db)
+    
+    # Register blueprints
+    from app.auth.routes import bp as auth_bp
+    app.register_blueprint(auth_bp)
+    
+    CORS(app)
+
+    from app.api import catalog_bp, export_bp
+    from app.api.auth import bp as auth_bp, google_bp
+    from app.channels.woot.routes import bp as woot_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(catalog_bp)
+    app.register_blueprint(export_bp)
+    app.register_blueprint(woot_bp)
+    
+    # Register error handlers
+    from app.errors import register_error_handlers
+    register_error_handlers(app)
+    
+    return app 
+    app.register_blueprint(google_bp, url_prefix="/api/auth")
+
+    with app.app_context():
+        from app.core.models.base import Base
+
+        Base.metadata.create_all(db.engine)
+
+    return app
+app/api/auth.py
++73
+-44
+
+"""Authentication API endpoints.
+
+Layer: api
+"""
+from flask import Blueprint, request, jsonify, current_app
+
+import logging
+from flask import Blueprint, request, jsonify, current_app, redirect, url_for
+from flask_dance.contrib.google import make_google_blueprint, google
+
+from app.core.auth.service import AuthService
+from app.services.auth import upsert_user
+from app import db
+
+bp = Blueprint('auth', __name__, url_prefix='/api/auth')
+logger = logging.getLogger(__name__)
+
+bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+
+# Google OAuth blueprint registered on the app
+google_bp = make_google_blueprint(
+    scope=["profile", "email"], redirect_to="auth.google_callback"
+)
+
+
+def get_auth_service() -> AuthService:
+    """Get the auth service instance."""
+    return AuthService(db.session, current_app.config['SECRET_KEY'])
+    return AuthService(db.session, current_app.config["SECRET_KEY"])
+
+
+@bp.route('/register', methods=['POST'])
+@bp.route("/register", methods=["POST"])
+def register():
+    """Register a new user."""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({'error': 'email and password are required'}), 400
+    
+        return jsonify({"error": "email and password are required"}), 400
+
+    service = get_auth_service()
+    try:
+        user = service.create_user(email, password)
+        token = service.create_token(user)
+        return jsonify({
+            'token': token,
+            'user': user.to_dict()
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('/login', methods=['POST'])
+        return jsonify({"token": token, "user": user.to_dict()}), 201
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.error("registration failed: %s", exc)
+        return jsonify({"error": str(exc)}), 400
+
+
+@bp.route("/login", methods=["POST"])
+def login():
+    """Login a user."""
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({'error': 'email and password are required'}), 400
+    
+        return jsonify({"error": "email and password are required"}), 400
+
+    service = get_auth_service()
+    user = service.authenticate(email, password)
+    if not user:
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = service.create_token(user)
+    return jsonify({
+        'token': token,
+        'user': user.to_dict()
+    })
+    return jsonify({"token": token, "user": user.to_dict()})
+
+
+@bp.route('/logout', methods=['POST'])
+@bp.route("/logout", methods=["POST"])
+def logout():
+    """Logout a user."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Invalid authorization header'}), 401
+    
+    token = auth_header.split(' ')[1]
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Invalid authorization header"}), 401
+
+    token = auth_header.split(" ")[1]
+    service = get_auth_service()
+    service.revoke_token(token)
+    return jsonify({'message': 'Logged out successfully'})
+    return jsonify({"message": "Logged out successfully"})
+
+
+@bp.route('/me', methods=['GET'])
+@bp.route("/me", methods=["GET"])
+def get_current_user():
+    """Get the current user."""
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Invalid authorization header'}), 401
+    
+    token = auth_header.split(' ')[1]
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Invalid authorization header"}), 401
+
+    token = auth_header.split(" ")[1]
+    service = get_auth_service()
+    user = service.verify_token(token)
+    if not user:
+        return jsonify({'error': 'Invalid token'}), 401
+    
+    return jsonify(user.to_dict()) 
+        return jsonify({"error": "Invalid token"}), 401
+
+    return jsonify(user.to_dict())
+
+
+@bp.route("/google/callback")
+def google_callback():
+    """Handle Google OAuth callback."""
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+
+    resp = google.get("/oauth2/v2/userinfo")
+    if not resp.ok:
+        return jsonify({"error": "failed to fetch userinfo"}), 400
+
+    info = resp.json()
+    user = upsert_user(db.session, info)
+    auth = get_auth_service()
+    token = auth.create_token(user)
+    return jsonify({"token": token})
+app/api/export.py
++60
+-45
+
+"""Export API endpoints.
+
+Layer: api
+"""
+
+from flask import Blueprint, request, jsonify
+import logging
+import os
+import csv
+import tempfile
+from flask import Blueprint, request, jsonify, current_app
+from app.core.services.sheets import SheetsService
+from app.core.services.drive import DriveService
+from app.core.models.product import MasterProduct, InventoryRecord
+from app import db
+
+bp = Blueprint('export', __name__, url_prefix='/api/export')
+logger = logging.getLogger(__name__)
+
+@bp.route('/sheets/products', methods=['POST'])
+bp = Blueprint("export", __name__, url_prefix="/api/export")
+
+
+@bp.route("/sheets/products", methods=["POST"])
+def export_products_to_sheets():
+    """Export products to Google Sheets."""
+    data = request.get_json()
+    spreadsheet_id = data.get('spreadsheet_id')
+    range_name = data.get('range_name')
+    
+    spreadsheet_id = data.get("spreadsheet_id")
+    range_name = data.get("range_name")
+
+    if not spreadsheet_id or not range_name:
+        return jsonify({'error': 'spreadsheet_id and range_name are required'}), 400
+    
+        return jsonify({"error": "spreadsheet_id and range_name are required"}), 400
+
+    session = db.session
+    products = session.query(MasterProduct).all()
+    data = [product.to_dict() for product in products]
+    
+    sheets_service = SheetsService(None)  # TODO: Get credentials from config
+    sheets_service.update_sheet_data(spreadsheet_id, range_name, data)
+    
+    return jsonify({'message': 'Export completed successfully'})
+
+@bp.route('/sheets/inventory', methods=['POST'])
+    rows = [p.to_dict() for p in products]
+
+    creds = current_app.config.get("GOOGLE_CREDENTIALS")
+    sheets_service = SheetsService(creds)
+    sheets_service.update_sheet_data(spreadsheet_id, range_name, rows)
+
+    return jsonify({"message": "Export completed successfully"})
+
+
+@bp.route("/sheets/inventory", methods=["POST"])
+def export_inventory_to_sheets():
+    """Export inventory records to Google Sheets."""
+    data = request.get_json()
+    spreadsheet_id = data.get('spreadsheet_id')
+    range_name = data.get('range_name')
+    
+    spreadsheet_id = data.get("spreadsheet_id")
+    range_name = data.get("range_name")
+
+    if not spreadsheet_id or not range_name:
+        return jsonify({'error': 'spreadsheet_id and range_name are required'}), 400
+    
+        return jsonify({"error": "spreadsheet_id and range_name are required"}), 400
+
+    session = db.session
+    records = session.query(InventoryRecord).all()
+    data = [record.to_dict() for record in records]
+    
+    sheets_service = SheetsService(None)  # TODO: Get credentials from config
+    sheets_service.update_sheet_data(spreadsheet_id, range_name, data)
+    
+    return jsonify({'message': 'Export completed successfully'})
+
+@bp.route('/drive/products', methods=['POST'])
+    rows = [r.to_dict() for r in records]
+
+    creds = current_app.config.get("GOOGLE_CREDENTIALS")
+    sheets_service = SheetsService(creds)
+    sheets_service.update_sheet_data(spreadsheet_id, range_name, rows)
+
+    return jsonify({"message": "Export completed successfully"})
+
+
+@bp.route("/drive/products", methods=["POST"])
+def export_products_to_drive():
+    """Export products to Google Drive."""
+    data = request.get_json()
+    folder_id = data.get('folder_id')
+    filename = data.get('filename', 'products.csv')
+    
+    folder_id = data.get("folder_id")
+    filename = data.get("filename", "products.csv")
+
+    if not folder_id:
+        return jsonify({'error': 'folder_id is required'}), 400
+    
+        return jsonify({"error": "folder_id is required"}), 400
+
+    session = db.session
+    products = session.query(MasterProduct).all()
+    data = [product.to_dict() for product in products]
+    
+    # TODO: Convert data to CSV
+    csv_data = "TODO: Convert to CSV"
+    
+    drive_service = DriveService(None)  # TODO: Get credentials from config
+    rows = [p.to_dict() for p in products]
+
+    csv_fd, csv_path = tempfile.mkstemp(suffix=".csv")
+    with os.fdopen(csv_fd, "w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    creds = current_app.config.get("GOOGLE_CREDENTIALS")
+    drive_service = DriveService(creds)
+    file = drive_service.upload_file(
+        file_path=csv_data,
+        mime_type='text/csv',
+        name=filename
+        file_path=csv_path,
+        mime_type="text/csv",
+        name=filename,
+    )
+    
+    return jsonify({'message': 'Export completed successfully', 'file_id': file['id']}) 
+
+    return jsonify({"message": "Export completed successfully", "file_id": file["id"]})
+app/channels/woot/routes.py
++10
+-15
+
+"""Woot channel routes.
+
+Layer: channels
+"""
+
+import logging
+import os
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from flask import Blueprint, request, jsonify, current_app
+from flask_login import login_required, current_user
+from google.oauth2.credentials import Credentials
+
+from app import db
+from app.channels.woot.models import (
+    WootPorf,
+    WootPo,
+    WootPorfStatus,
+    WootPoStatus,
+    PORF,
+    PO,
+)
+from app.channels.woot.models import WootPorfStatus, WootPoStatus
+from app.channels.woot.service import WootService, WootOrderService
+from app.channels.woot.logic import ingest_porf
+from app.auth.service import AuthService
+from app.core.auth.service import AuthService
+from app.core.services.sheets import SheetsService
+from app.core.services.drive import DriveService
+
+logger = logging.getLogger(__name__)
+
+bp = Blueprint("woot", __name__, url_prefix="/api/woot")
+
+
+@bp.route("/porf-upload", methods=["POST"])
+def porf_upload():
+    """Upload and ingest a PORF spreadsheet."""
+    if "file" not in request.files:
+        return jsonify({"error": "file required"}), 400
+    file = request.files["file"]
+    drive = DriveService(None)  # TODO: credentials
+    sheets = SheetsService(None)
+    creds = current_app.config.get("GOOGLE_CREDENTIALS")
+    drive = DriveService(creds)
+    sheets = SheetsService(creds)
+    result = ingest_porf(file.stream, drive, sheets)
+    return jsonify(result), 201
+
+
+def get_woot_service() -> WootService:
+    """Get Woot service instance.
+
+    Returns:
+        WootService instance
+    """
+    auth_service = AuthService(db.session)
+    credentials = auth_service.get_oauth_token(current_user.id, "google")
+    if not credentials:
+        raise ValueError("Google credentials not found")
+    return WootService(credentials)
+
+
+def get_service() -> WootOrderService:
+    """Get the Woot order service instance."""
+    session = db.session
+    sheets_service = SheetsService(None)  # TODO: Get credentials from config
+    creds = current_app.config.get("GOOGLE_CREDENTIALS")
+    sheets_service = SheetsService(creds)
+    return WootOrderService(session, sheets_service)
+
+
+@bp.route("/porfs", methods=["POST"])
+@login_required
+def create_porf():
+    """Create a new PORF."""
+    try:
+        data = request.get_json()
+        service = get_woot_service()
+        porf = service.create_porf(data)
+        return jsonify(porf.to_dict()), 201
+    except Exception as e:
+        current_app.logger.error(f"Error creating PORF: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
+
+@bp.route("/porfs/<int:porf_id>/po", methods=["POST"])
+@login_required
+def create_po(porf_id: int):
+    """Create a new PO from a PORF."""
+    try:
+        data = request.get_json()
+        service = get_woot_service()
+        po = service.create_po(porf_id, data)
+app/core/models/__init__.py
++12
+-10
+
+"""Core models package."""
+
+from app.core.models.base import Base, BaseModel
+from app.core.models.product import MasterProduct, InventoryRecord
+from app.core.models.order import (
+    PurchaseOrder,
+    PurchaseOrderItem,
+    PurchaseOrderRequest,
+    PurchaseOrderRequestItem
+    PurchaseOrderRequestItem,
+)
+from app.core.models.organisation import Organisation
+
+__all__ = [
+    'Base',
+    'BaseModel',
+    'MasterProduct',
+    'InventoryRecord',
+    'PurchaseOrder',
+    'PurchaseOrderItem',
+    'PurchaseOrderRequest',
+    'PurchaseOrderRequestItem'
+] 
+    "Base",
+    "BaseModel",
+    "MasterProduct",
+    "InventoryRecord",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
+    "PurchaseOrderRequest",
+    "PurchaseOrderRequestItem",
+    "Organisation",
+]
+app/core/models/organisation.py
+New
++17
+-0
+
+"""Organisation model storing workspace info.
+
+Layer: core
+"""
+
+from sqlalchemy import Column, String
+
+from app.core.models.base import BaseModel
+
+
+class Organisation(BaseModel):
+    """Organisation row."""
+
+    __tablename__ = "organisations"
+
+    name = Column(String(100), unique=True, nullable=False)
+    workspace_folder_id = Column(String(255), nullable=True)
+app/core/services/drive.py
++26
+-4
+
+from typing import List, Dict, Any, Optional
+import logging
+from app import db
+from app.core.models.organisation import Organisation
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+import io
+
+logger = logging.getLogger(__name__)
+
+
+class DriveService:
+    """Core service for interacting with Google Drive."""
+
+    def __init__(self, credentials: Credentials):
+        self.service = build("drive", "v3", credentials=credentials)
+        self.files = self.service.files()
+
+    def list_files(self, query: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List files in Google Drive, optionally filtered by query."""
+        try:
+            results = self.files.list(
+                q=query, pageSize=100, fields="nextPageToken, files(id, name, mimeType)"
+            ).execute()
+            return results.get("files", [])
+        except HttpError as error:
+            raise Exception(f"Error listing files: {error}")
+
+    def get_file(self, file_id: str) -> Dict[str, Any]:
+        """Get metadata for a specific file."""
+        try:
+            return self.files.get(fileId=file_id, fields="id, name, mimeType").execute()
+        except HttpError as error:
+            raise Exception(f"Error getting file: {error}")
+
+@@ -63,49 +68,66 @@ class DriveService:
+            self.files.delete(fileId=file_id).execute()
+        except HttpError as error:
+            raise Exception(f"Error deleting file: {error}")
+
+    def create_folder(
+        self, name: str, parent_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Create a new folder in Google Drive."""
+        try:
+            file_metadata = {
+                "name": name,
+                "mimeType": "application/vnd.google-apps.folder",
+            }
+            if parent_id:
+                file_metadata["parents"] = [parent_id]
+
+            file = self.files.create(body=file_metadata, fields="id").execute()
+            return file
+        except HttpError as error:
+            raise Exception(f"Error creating folder: {error}")
+
+    # ------------------------------------------------------------------
+    # Convenience helpers used by channel logic
+    # ------------------------------------------------------------------
+    def ensure_workspace(self, org_id: str) -> str:
+        """Return the workspace folder for an organisation."""
+        """Return the workspace folder for an organisation and ensure channel folders."""
+        query = (
+            f"name = 'Your-App-Workspace-{org_id}' and "
+            "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        )
+        existing = self.list_files(query)
+        if existing:
+            return existing[0]["id"]
+            root_id = existing[0]["id"]
+        else:
+            root_id = self.create_folder(f"Your-App-Workspace-{org_id}")["id"]
+
+        folder = self.create_folder(f"Your-App-Workspace-{org_id}")
+        return folder["id"]
+        org = db.session.query(Organisation).get(int(org_id))
+        if org:
+            if org.workspace_folder_id != root_id:
+                org.workspace_folder_id = root_id
+                db.session.commit()
+        else:
+            org = Organisation(
+                id=int(org_id), name=str(org_id), workspace_folder_id=root_id
+            )
+            db.session.add(org)
+            db.session.commit()
+
+        woot_root = self.ensure_subfolder(root_id, "woot")
+        self.ensure_subfolder(woot_root, "porfs")
+        self.ensure_subfolder(woot_root, "pos")
+
+        return root_id
+
+    def ensure_subfolder(self, parent_id: str, name: str) -> str:
+        """Return sub-folder ``name`` under ``parent_id``."""
+        query = (
+            f"name = '{name}' and '{parent_id}' in parents and "
+            "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        )
+        existing = self.list_files(query)
+        if existing:
+            return existing[0]["id"]
+
+        folder = self.create_folder(name, parent_id)
+        return folder["id"]
+app/core/services/sheets.py
++4
+-1
+
+from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
+import logging
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+
+TWO_WAY_SYNC_ENABLED = False
+
+logger = logging.getLogger(__name__)
+
+
+class SheetsService:
+    """Core service for interacting with Google Sheets."""
+
+    def __init__(self, credentials: Credentials):
+        self.service = build("sheets", "v4", credentials=credentials)
+        self.spreadsheets = self.service.spreadsheets()
+
+    def get_sheet_data(self, spreadsheet_id: str, range_name: str) -> List[List[Any]]:
+        """Get data from a specific range in a spreadsheet."""
+        try:
+            result = (
+                self.spreadsheets.values()
+                .get(spreadsheetId=spreadsheet_id, range=range_name)
+                .execute()
+            )
+            return result.get("values", [])
+        except HttpError as error:
+            raise Exception(f"Error fetching sheet data: {error}")
+
+    def update_sheet_data(
+        self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
+    ) -> Dict[str, Any]:
+        """Update data in a specific range of a spreadsheet."""
+        try:
+app/main.py
+Deleted
++0
+-44
+
+app/services/auth.py
+New
++30
+-0
+
+import logging
+from sqlalchemy.orm import Session
+from typing import Dict
+
+from app.core.auth.models import User
+
+logger = logging.getLogger(__name__)
+
+
+def upsert_user(db: Session, info: Dict[str, str]) -> User:
+    """Create or update a user from OAuth info."""
+    email = info.get("email")
+    if not email:
+        raise ValueError("email required")
+    user = db.query(User).filter_by(email=email).first()
+    if user:
+        user.first_name = info.get("given_name")
+        user.last_name = info.get("family_name")
+    else:
+        user = User(
+            email=email,
+            password_hash="",
+            first_name=info.get("given_name"),
+            last_name=info.get("family_name"),
+        )
+        db.add(user)
+    db.commit()
+    db.refresh(user)
+    logger.info("Upserted user %s", email)
+    return user
+mypy.ini
+New
++7
+-0
+
+[mypy]
+python_version = 3.12
+mypy_path = stubs
+strict = True
+
+[mypy-google.*]
+ignore_missing_imports = True
+requirements.txt
+
+No content
+stubs/google/__init__.pyi
+New
++1
+-0
+
+from typing import Any
+stubs/google/oauth2/__init__.pyi
+New
++3
+-0
+
+from typing import Any
+
+class Credentials: ...
+stubs/google/oauth2/py.typed
+
+No content
+stubs/google/py.typed
+
+No content
+stubs/googleapiclient/__init__.pyi
+New
++5
+-0
+
+from typing import Any
+
+def build(*args: Any, **kwargs: Any) -> Any: ...
+
+class HttpError(Exception): ...
+stubs/googleapiclient/errors.pyi
+New
++1
+-0
+
+class HttpError(Exception): ...
+stubs/googleapiclient/http.pyi
+New
++8
+-0
+
+from typing import Any
+
+class MediaFileUpload:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+class MediaIoBaseDownload:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+    def next_chunk(self) -> tuple[Any, bool]: ...
+stubs/googleapiclient/py.typed
+
+No content
+stubs/gspread/__init__.pyi
+New
++1
+-0
+
+from typing import Any
+stubs/gspread/py.typed
+
+No content
+tests/conftest.py
++10
+-12
+
+"""
+PyTest fixtures for Woot-MVP.
+"""PyTest fixtures for Woot-MVP.
+Runs Alembic migrations against an in-memory SQLite DB
+so core tables (product, porf, po …) exist before tests run.
+"""
+
+import sys
+import os
+import tempfile
+import importlib.util
+import sys
+from pathlib import Path
+from typing import Generator
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
+from alembic.config import Config
+from alembic import command
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # noqa: E402
+from app import create_app  # noqa: E402
+
+# ------------------------------------------------------------------
+# Database – use sqlite:///:memory: for each test session
+# ------------------------------------------------------------------
+TEST_DB_URL = "sqlite:///:memory:"
+
+
+@pytest.fixture(scope="session")
+def engine():
+def engine() -> Generator:
+    eng = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+    # Run Alembic migrations against the in-memory DB
+    alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
+    command.upgrade(alembic_cfg, "head")
+    yield eng
+    eng.dispose()
+
+
+@pytest.fixture(scope="session")
+def db_session(engine):
+    """Provide a scoped_session bound to the in-memory engine."""
+    Session = scoped_session(sessionmaker(bind=engine))
+    yield Session
+    Session.remove()
+
+
+# ------------------------------------------------------------------
+# Flask app + client that use the same in-memory DB
+# ------------------------------------------------------------------
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from app.main import create_app
+
+
+@pytest.fixture(scope="session")
+def app(engine):
+    os.environ["DATABASE_URL"] = TEST_DB_URL
+    application = create_app("testing")
+    cfg = {"TESTING": True, "GOOGLE_CREDENTIALS": None}
+    application = create_app(cfg)
+    return application
+
+
+@pytest.fixture(scope="function")
+def client(app):
+    return app.test_client()
+tests/integration/test_google_oauth.py
+New
++17
+-0
+
+from unittest.mock import patch, MagicMock
+
+
+def test_google_callback_returns_token(client):
+    mock_resp = MagicMock()
+    mock_resp.ok = True
+    mock_resp.json.return_value = {
+        "email": "foo@example.com",
+        "given_name": "Foo",
+        "family_name": "Bar",
+    }
+    with patch("flask_dance.contrib.google.google.authorized", True), patch(
+        "flask_dance.contrib.google.google.get", return_value=mock_resp
+    ):
+        resp = client.get("/api/auth/google/callback")
+    assert resp.status_code == 200
+    assert "token" in resp.json
+tests/unit/test_drive_service.py
+New
++30
+-0
+
+from app.core.services.drive import DriveService
+
+
+class DummyDrive(DriveService):
+    def __init__(self):
+        self.created = {}
+
+    def list_files(self, query=None):
+        name = query.split("name = '")[1].split("'")[0]
+        parent = None
+        if "in parents" in query:
+            parent = query.split("'")[3]
+        key = (parent, name)
+        if key in self.created:
+            return [{"id": self.created[key]}]
+        return []
+
+    def create_folder(self, name, parent_id=None):
+        folder_id = f"{name}-{len(self.created)}"
+        self.created[(parent_id, name)] = folder_id
+        return {"id": folder_id}
+
+
+def test_ensure_workspace_idempotent():
+    drive = DummyDrive()
+    ws1 = drive.ensure_workspace("42")
+    ws2 = drive.ensure_workspace("42")
+    assert ws1 == ws2
+    assert len(drive.created) == 4
+    assert (ws1, "woot") in drive.created

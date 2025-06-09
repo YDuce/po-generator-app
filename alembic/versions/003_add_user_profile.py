@@ -1,5 +1,5 @@
 """
-Add name and picture fields to user table
+Add name and picture fields to users table
 """
 
 from alembic import op
@@ -12,10 +12,10 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("user", sa.Column("name", sa.String(), nullable=True))
-    op.add_column("user", sa.Column("picture", sa.String(), nullable=True))
+    op.add_column("users", sa.Column("name", sa.String(), nullable=True))
+    op.add_column("users", sa.Column("picture", sa.String(), nullable=True))
 
 
 def downgrade():
-    op.drop_column("user", "picture")
-    op.drop_column("user", "name") 
+    op.drop_column("users", "picture")
+    op.drop_column("users", "name") 

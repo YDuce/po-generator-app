@@ -85,17 +85,23 @@ class DriveService:
     # Convenience helpers used by channel logic
     # ------------------------------------------------------------------
     def ensure_workspace(self, org_id: str) -> str:
-        """Return the workspace folder for an organisation."""
+        """Return the workspace folder for an organisation, creating subfolders as needed."""
         query = (
             f"name = 'Your-App-Workspace-{org_id}' and "
             "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         )
         existing = self.list_files(query)
         if existing:
-            return existing[0]["id"]
+            root_id = existing[0]["id"]
+        else:
+            folder = self.create_folder(f"Your-App-Workspace-{org_id}")
+            root_id = folder["id"]
 
-        folder = self.create_folder(f"Your-App-Workspace-{org_id}")
-        return folder["id"]
+        # Ensure subfolders under root
+        woot_id = self.ensure_subfolder(root_id, "woot")
+        self.ensure_subfolder(woot_id, "porfs")
+        self.ensure_subfolder(woot_id, "pos")
+        return root_id
 
     def ensure_subfolder(self, parent_id: str, name: str) -> str:
         """Return sub-folder ``name`` under ``parent_id``."""
