@@ -61,7 +61,7 @@ class SheetsService:
         self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
     ) -> Dict[str, Any]:
         """Update data in a Google Sheet.
-        
+
         Args:
             spreadsheet_id: ID of the spreadsheet
             range_name: A1 notation range to update
@@ -70,6 +70,8 @@ class SheetsService:
         Returns:
             Update response
         """
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
         try:
             body = {
                 "values": values
@@ -90,6 +92,8 @@ class SheetsService:
         self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
     ) -> Dict[str, Any]:
         """Append data to a specific range in a spreadsheet."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
         try:
             body = {"values": values}
             result = (
@@ -109,6 +113,8 @@ class SheetsService:
 
     def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> Dict[str, Any]:
         """Clear data from a specific range in a spreadsheet."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
         try:
             result = (
                 self.spreadsheets.values()
@@ -130,6 +136,8 @@ class SheetsService:
         self, src_id: str, dst_title: str, folder_id: str
     ) -> tuple[str, str]:
         """Copy ``src_id`` to ``dst_title`` inside ``folder_id``."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
         body = {"name": dst_title, "parents": [folder_id]}
         copy = self.service.files().copy(fileId=src_id, body=body).execute()
         sheet_id = copy["id"]
@@ -138,6 +146,8 @@ class SheetsService:
 
     def append_rows(self, sheet_id: str, rows: List[List[str]]):
         """Append ``rows`` to the first worksheet."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
         body = {"values": rows}
         self.spreadsheets.values().append(
             spreadsheetId=sheet_id,

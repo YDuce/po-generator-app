@@ -35,7 +35,7 @@ def engine():
     # Run Alembic migrations against the in-memory DB
     alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
-    command.upgrade(alembbic_cfg, "head")
+    command.upgrade(alembic_cfg, "head")
     
     yield eng
     
@@ -59,7 +59,7 @@ def db_session(engine):
 # Flask app + client that use the same in-memory DB
 # ------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.main import create_app
+from app import create_app
 
 @pytest.fixture(scope="session")
 def app(engine):

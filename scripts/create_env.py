@@ -15,7 +15,7 @@ def create_env_file():
     env_path = Path('.env')
     with open(env_path, 'w') as f:
         f.write('# Flask Configuration\n')
-        f.write('FLASK_APP=app.main:create_app\n')
+        f.write('FLASK_APP=app:create_app\n')
         f.write('FLASK_ENV=development\n')
         f.write('SECRET_KEY=your-secret-key-here\n')
         

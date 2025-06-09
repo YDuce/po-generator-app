@@ -1,0 +1,12 @@
+pytest
+pytest-mock
+pytest-cov
+mypy
+types-requests
+types-openpyxl
+types-PyJWT
+types-Flask-SQLAlchemy
+pre-commit
+ruff
+bandit
+pip-audit

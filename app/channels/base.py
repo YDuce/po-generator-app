@@ -39,7 +39,7 @@ class ChannelConnector(ABC):
         Returns:
             List of order data
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def fetch_inventory(self) -> List[Dict[str, Any]]:
@@ -48,7 +48,7 @@ class ChannelConnector(ABC):
         Returns:
             List of inventory data
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def create_porf(self, data: Dict[str, Any]) -> Any:
@@ -60,7 +60,7 @@ class ChannelConnector(ABC):
         Returns:
             Created PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def create_po(self, porf_id: int, data: Dict[str, Any]) -> Any:
@@ -73,7 +73,7 @@ class ChannelConnector(ABC):
         Returns:
             Created PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def upload_po_file(self, po_id: int, file_path: str) -> str:
@@ -86,7 +86,7 @@ class ChannelConnector(ABC):
         Returns:
             ID of the uploaded file
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def update_porf_status(self, porf_id: int, status: Any) -> Any:
@@ -99,7 +99,7 @@ class ChannelConnector(ABC):
         Returns:
             Updated PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def update_po_status(self, po_id: int, status: Any) -> Any:
@@ -112,7 +112,7 @@ class ChannelConnector(ABC):
         Returns:
             Updated PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def get_porf(self, porf_id: int) -> Any:
@@ -124,7 +124,7 @@ class ChannelConnector(ABC):
         Returns:
             PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def get_po(self, po_id: int) -> Any:
@@ -136,7 +136,7 @@ class ChannelConnector(ABC):
         Returns:
             PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def list_porfs(self, status: Optional[Any] = None) -> List[Any]:
@@ -148,7 +148,7 @@ class ChannelConnector(ABC):
         Returns:
             List of PORF instances
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def list_pos(self, status: Optional[Any] = None) -> List[Any]:
@@ -160,7 +160,7 @@ class ChannelConnector(ABC):
         Returns:
             List of PO instances
         """
-        pass
+        raise NotImplementedError
 
 class ChannelInterface(ABC):
     """Base interface for channel implementations."""
@@ -175,7 +175,7 @@ class ChannelInterface(ABC):
         Returns:
             Created PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def create_po(self, porf_id: int, data: Dict[str, Any]) -> Any:
@@ -188,7 +188,7 @@ class ChannelInterface(ABC):
         Returns:
             Created PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def upload_po_file(self, po_id: int, file_path: str) -> str:
@@ -201,7 +201,7 @@ class ChannelInterface(ABC):
         Returns:
             ID of the uploaded file
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def create_porf_spreadsheet(self, porf_id: int) -> str:
@@ -213,7 +213,7 @@ class ChannelInterface(ABC):
         Returns:
             ID of the created spreadsheet
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def update_porf_status(self, porf_id: int, status: str) -> Any:
@@ -226,7 +226,7 @@ class ChannelInterface(ABC):
         Returns:
             Updated PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def update_po_status(self, po_id: int, status: str) -> Any:
@@ -239,7 +239,7 @@ class ChannelInterface(ABC):
         Returns:
             Updated PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def get_porf(self, porf_id: int) -> Any:
@@ -251,7 +251,7 @@ class ChannelInterface(ABC):
         Returns:
             PORF instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def get_po(self, po_id: int) -> Any:
@@ -263,7 +263,7 @@ class ChannelInterface(ABC):
         Returns:
             PO instance
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def list_porfs(self, status: Optional[str] = None) -> List[Any]:
@@ -275,7 +275,7 @@ class ChannelInterface(ABC):
         Returns:
             List of PORF instances
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def list_pos(self, status: Optional[str] = None) -> List[Any]:
@@ -287,7 +287,7 @@ class ChannelInterface(ABC):
         Returns:
             List of PO instances
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def fetch_orders(self, start_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
@@ -299,7 +299,7 @@ class ChannelInterface(ABC):
         Returns:
             List of order data
         """
-        pass
+        raise NotImplementedError
     
     @abstractmethod
     def fetch_inventory(self) -> List[Dict[str, Any]]:
