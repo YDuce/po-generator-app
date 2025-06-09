@@ -60,7 +60,7 @@ def db_session(engine):
 # Flask app + client that use the same in-memory DB
 # ------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from app.main import create_app
+from app import create_app
 
 @pytest.fixture(scope="session")
 def app(engine):

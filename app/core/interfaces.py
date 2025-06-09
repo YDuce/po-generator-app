@@ -41,4 +41,4 @@ class BaseExportStrategy(ABC):
     @abstractmethod
     def validate(self, data: Dict[str, Any]) -> bool:
         """Validate data before export."""
-        raise NotImplementedError() 
+        raise NotImplementedError()

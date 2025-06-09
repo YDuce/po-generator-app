@@ -9,4 +9,4 @@ class Organisation(Base):
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
     updated_at = sa.Column(sa.DateTime(timezone=True), onupdate=sa.func.now())
 
-__all__ = ["Organisation"] 
+__all__ = ["Organisation"]

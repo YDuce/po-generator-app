@@ -9,11 +9,14 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer import oauth_authorized, oauth_error
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage
 from sqlalchemy.orm.exc import NoResultFound
+from flask_login import current_user
 
 from app.core.models.user import User
 from app import db
 
 logger = logging.getLogger(__name__)
+google_bp = None
+__all__ = ["google", "google_bp", "create_google_bp", "init_oauth"]
 
 # Stub for google_bp to satisfy import in tests/conftest.py
 google_bp = None
