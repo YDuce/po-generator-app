@@ -1,6 +1,6 @@
 # AGENTS.md
 
-*Last updated: 2025‑06‑08*
+*Last updated: <YYYY‑MM‑DD>*
 
 ---
 
@@ -76,8 +76,11 @@ Import rule: **`api → channels → core`** (no reverse imports).
 
 ---
 
-## 8 · Google Workspace Policy
+## Google Workspace
+App owns one Drive folder per organisation (ensure_workspace).
+All sheets created via core.services.drive/sheets.
+Sheets remain read-only until TWO_WAY_SYNC_ENABLED is True.
 
-* App owns one Drive folder per organisation (`ensure_workspace`).
-* Sheets created via `core.services.{drive,sheets}` wrappers only.
-* Sheets read‑only until `TWO_WAY_SYNC_ENABLED = True`.
+## Naming Helper
+`slugify(label: str, identifier: int | str) -> str` converts names into
+Drive-friendly slugs. Example: `slugify("PORF", 42)` → `porf-42`.

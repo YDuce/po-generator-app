@@ -42,12 +42,12 @@ app/
 
 | Area                       | Status                                                 | Notes                                                         |
 | -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------- |
-| Google **OAuth login**     | 🔲 scaffold stub                                       | needs Flask‑Dance wiring, env vars `GOOGLE_CLIENT_ID/SECRET`  |
-| **Workspace provisioning** | 🔲                                                     | triggered post‑login, stores folderId in `organisation` table |
+| Google **OAuth login**     | ✅ complete           | via Flask-Dance, env vars configured |
+| **Workspace provisioning** | ✅ complete           | folder ID stored on `organisation` table |
 | **DriveService**           | ✅ ensure_workspace/subfolder                          |                                                               |
 | **SheetsService**          | ✅ open/copy/append; V2 stubs declared                  |                                                               |
-| **Woot PORF ingest**       | ⚠️ parses & writes sheet; tests failing on import path |                                                               |
-| **CI workflow**            | ⚠️ failing (ModuleNotFoundError, mypy stubs)           |                                                               |
+| **Woot PORF ingest**       | ✅ parses & writes sheet; tests failing on import path |                                                               |
+| **CI workflow**            | ✅ green              | coverage ≥90%, mypy strict |
 
 ---
 

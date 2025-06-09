@@ -13,6 +13,7 @@ from typing import BinaryIO, Dict, List
 from app import db
 from app.core.services.drive import DriveService
 from app.core.services.sheets import SheetsService
+from app.core.logic.utils import slugify
 from .models import WootPorf, WootPorfLine, WootPorfStatus
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,9 @@ def ingest_porf(
 
     workspace = drive.ensure_workspace("default")
     dst_folder = drive.ensure_subfolder(workspace, "woot/porfs")
-    sheet_id, url = sheets.copy_template(TEMPLATE_ID, f"PORF-{porf.id}", dst_folder)
+    sheet_id, url = sheets.copy_template(
+        TEMPLATE_ID, slugify("PORF", porf.id), dst_folder
+    )
     sheets.append_rows(sheet_id, canonical_rows)
 
     logger.info("ingest_porf success")

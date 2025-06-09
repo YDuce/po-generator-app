@@ -5,9 +5,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from database import Base
-
 # from models import *  # REMOVE this star import for flake8 compliance
+from app.core.models.base import Base
+
 # If explicit models are needed for autogeneration, import them here
 # from models.product import Product
 # from models.porf import PORF
