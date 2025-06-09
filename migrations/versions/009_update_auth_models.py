@@ -3,6 +3,11 @@
 This migration:
 1. Removes the oauth_tokens table
 2. Creates a new sessions table
+
+Revision ID: 009
+Revises: 004
+Create Date: 2024-03-19 10:00:00.000000
+
 """
 
 from alembic import op
@@ -10,7 +15,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '009_update_auth_models'
+revision = '009'
 down_revision = '004'
 branch_labels = None
 depends_on = None
