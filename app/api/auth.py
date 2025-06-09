@@ -5,9 +5,11 @@ Layer: api
 import logging
 import jwt
 from datetime import datetime, timedelta
+from functools import wraps
 from flask import Blueprint, request, jsonify, current_app, redirect, url_for, session
 from flask_dance.contrib.google import google
 from flask_login import login_user, logout_user, login_required, current_user
+from werkzeug.exceptions import Unauthorized
 
 from app.core import oauth
 from app.core.auth.service import upsert_user
@@ -21,21 +23,61 @@ def get_auth_service():
     """Get the auth service instance."""
     return AuthService(db.session, current_app.config["SECRET_KEY"])
 
-def create_jwt_token(user):
+def create_jwt_token(user, expires_delta=None):
     """Create a JWT token for the user.
     
     Args:
         user: User model instance
+        expires_delta: Optional timedelta for token expiration
         
     Returns:
         str: JWT token
     """
+    if expires_delta is None:
+        expires_delta = timedelta(hours=1)
+        
     payload = {
         'sub': user.id,
         'email': user.email,
-        'exp': datetime.utcnow() + timedelta(hours=1)
+        'exp': datetime.utcnow() + expires_delta,
+        'iat': datetime.utcnow()
     }
     return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm='HS256')
+
+def token_required(f):
+    """Decorator to require JWT token authentication."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        
+        # Get token from header
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+        
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+            
+        try:
+            # Decode token
+            payload = jwt.decode(
+                token,
+                current_app.config['SECRET_KEY'],
+                algorithms=['HS256']
+            )
+            
+            # Get user from token
+            user = User.query.get(payload['sub'])
+            if not user:
+                raise Unauthorized('User not found')
+                
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Invalid token'}), 401
+            
+        return f(user, *args, **kwargs)
+    return decorated
 
 @bp.route("/google")
 def google_login():
@@ -50,22 +92,35 @@ def google_callback():
     if not google.authorized:
         return redirect(url_for("google.login"))
 
-    resp = google.get("/oauth2/v2/userinfo")
-    if not resp.ok:
-        return jsonify({"error": "Failed to fetch user info"}), 400
+    try:
+        resp = google.get("/oauth2/v2/userinfo")
+        if not resp.ok:
+            logger.error("Failed to fetch user info: %s", resp.text)
+            return redirect(url_for("auth.login_error"))
 
-    info = resp.json()
-    user = upsert_user(db.session, info)
-    login_user(user)
-    
-    # Create JWT token
+        info = resp.json()
+        user = upsert_user(db.session, info)
+        login_user(user)
+        
+        # Create JWT token
+        token = create_jwt_token(user)
+        
+        # Store token in session
+        session['token'] = token
+        
+        # Redirect to frontend with token
+        return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={token}")
+        
+    except Exception as e:
+        logger.error("OAuth callback error: %s", str(e))
+        return redirect(url_for("auth.login_error"))
+
+@bp.route("/refresh", methods=["POST"])
+@token_required
+def refresh_token(user):
+    """Refresh JWT token."""
     token = create_jwt_token(user)
-    
-    # Store token in session
-    session['token'] = token
-    
-    # Redirect to frontend with token
-    return redirect(f"{current_app.config['FRONTEND_URL']}/dashboard?token={token}")
+    return jsonify({"token": token})
 
 @bp.route("/logout")
 @login_required
@@ -80,28 +135,35 @@ def logout():
     return jsonify({"message": "Logged out successfully"})
 
 @bp.route("/me")
-@login_required
-def get_current_user():
+@token_required
+def get_current_user(user):
     """Get current user info."""
     return jsonify({
-        "id": current_user.id,
-        "email": current_user.email,
-        "first_name": current_user.first_name,
-        "last_name": current_user.last_name,
-        "company_name": current_user.company_name,
-        "company_address": current_user.company_address,
-        "phone": current_user.phone
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "company_name": user.company_name,
+        "company_address": user.company_address,
+        "phone": user.phone
     })
 
 @bp.route("/check", methods=["GET"])
-def check_auth():
+@token_required
+def check_auth(user):
     """Check if user is authenticated."""
-    if current_user.is_authenticated:
-        return jsonify({
-            "authenticated": True,
-            "user": current_user.to_dict()
-        })
-    return jsonify({"authenticated": False}), 401
+    return jsonify({
+        "authenticated": True,
+        "user": user.to_dict()
+    })
+
+@bp.route("/login-error")
+def login_error():
+    """Handle login errors."""
+    return jsonify({
+        "error": "Authentication failed",
+        "message": "There was an error during the authentication process"
+    }), 401
 
 @bp.route("/register", methods=["POST"])
 def register():
