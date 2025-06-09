@@ -28,7 +28,7 @@ def setup_environment():
     env_path = Path('.env')
     with open(env_path, 'a') as f:
         f.write(f'\n# Flask Configuration\n')
-        f.write('FLASK_APP=app.main:create_app\n')
+        f.write('FLASK_APP=app:create_app\n')
         f.write('FLASK_ENV=development\n')
         
         f.write(f'\n# Database Configuration\n')

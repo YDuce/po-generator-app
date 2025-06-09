@@ -1,7 +1,10 @@
 """Google Drive service."""
 
 from typing import List, Dict, Any, Optional, BinaryIO
+import os
+import json
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload
 from googleapiclient.errors import HttpError
@@ -12,17 +15,27 @@ logger = logging.getLogger(__name__)
 
 class GoogleDriveService:
     """Service for interacting with Google Drive."""
-    
-    def __init__(self, credentials: Credentials):
+
+    def __init__(self, credentials: Optional[Credentials] = None):
         """Initialize the Google Drive service.
-        
+
         Args:
-            credentials: Google API credentials
+            credentials: Optional Google API credentials. If ``None``, load from
+                the ``GOOGLE_SVC_KEY`` environment variable.
         """
-        if not credentials or not credentials.valid:
-            raise ValueError("Invalid or missing credentials")
-            
-        self.service = build('drive', 'v3', credentials=credentials)
+        if credentials is None:
+            key_json = os.environ.get("GOOGLE_SVC_KEY")
+            if not key_json:
+                raise ValueError("GOOGLE_SVC_KEY environment variable not set")
+            info = json.loads(key_json)
+            credentials = service_account.Credentials.from_service_account_info(
+                info,
+                scopes=["https://www.googleapis.com/auth/drive"],
+            )
+        elif not credentials.valid:
+            raise ValueError("Invalid credentials provided")
+
+        self.service = build("drive", "v3", credentials=credentials)
         self.files = self.service.files()
     
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
