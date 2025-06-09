@@ -3,6 +3,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from app.models.user import User
+from flask import url_for
 
 def test_google_oauth_callback(client, db_session):
     """Test Google OAuth callback flow."""
@@ -103,4 +104,107 @@ def test_google_oauth_callback_no_token(client, db_session):
         
         # Verify session was not set
         with client.session_transaction() as session:
-            assert 'user_id' not in session 
+            assert 'user_id' not in session
+
+def test_google_login_redirect(client):
+    """Test Google login redirect."""
+    response = client.get("/api/auth/google")
+    assert response.status_code == 302
+    assert "accounts.google.com" in response.location
+
+def test_google_callback_success(client, db_session, mock_oauth_responses):
+    """Test successful Google OAuth callback."""
+    # Mock Google OAuth response
+    with patch("flask_dance.contrib.google.google") as mock_google:
+        mock_google.authorized = True
+        mock_google.get.return_value.ok = True
+        mock_google.get.return_value.json.return_value = mock_oauth_responses["user_info"]
+        
+        # Call callback endpoint
+        response = client.get("/api/auth/google/callback")
+        
+        # Verify redirect to frontend
+        assert response.status_code == 302
+        assert "dashboard" in response.location
+        assert "token=" in response.location
+        
+        # Verify user was created
+        from app.core.models.user import User
+        user = User.query.filter_by(email=mock_oauth_responses["user_info"]["email"]).first()
+        assert user is not None
+        assert user.first_name == mock_oauth_responses["user_info"]["given_name"]
+        assert user.last_name == mock_oauth_responses["user_info"]["family_name"]
+
+def test_google_callback_unauthorized(client):
+    """Test Google OAuth callback when not authorized."""
+    # Mock unauthorized state
+    with patch("flask_dance.contrib.google.google") as mock_google:
+        mock_google.authorized = False
+        
+        # Call callback endpoint
+        response = client.get("/api/auth/google/callback")
+        
+        # Verify redirect to login
+        assert response.status_code == 302
+        assert "login" in response.location
+
+def test_google_callback_error(client, db_session):
+    """Test Google OAuth callback with error."""
+    # Mock Google OAuth error
+    with patch("flask_dance.contrib.google.google") as mock_google:
+        mock_google.authorized = True
+        mock_google.get.return_value.ok = False
+        mock_google.get.return_value.text = "Error message"
+        
+        # Call callback endpoint
+        response = client.get("/api/auth/google/callback")
+        
+        # Verify redirect to error page
+        assert response.status_code == 302
+        assert "login-error" in response.location
+
+def test_token_refresh(auth_client):
+    """Test JWT token refresh."""
+    # Get current token from auth_client
+    token = auth_client.environ_base["HTTP_AUTHORIZATION"].split(" ")[1]
+    
+    # Call refresh endpoint
+    response = auth_client.post("/api/auth/refresh")
+    
+    # Verify new token
+    assert response.status_code == 200
+    assert "token" in response.json
+    assert response.json["token"] != token
+
+def test_protected_endpoint_with_token(auth_client):
+    """Test accessing protected endpoint with valid token."""
+    response = auth_client.get("/api/auth/me")
+    assert response.status_code == 200
+    assert "email" in response.json
+    assert response.json["email"] == "test@example.com"
+
+def test_protected_endpoint_without_token(client):
+    """Test accessing protected endpoint without token."""
+    response = client.get("/api/auth/me")
+    assert response.status_code == 401
+    assert "error" in response.json
+    assert "Token is missing" in response.json["error"]
+
+def test_protected_endpoint_with_invalid_token(client):
+    """Test accessing protected endpoint with invalid token."""
+    client.environ_base["HTTP_AUTHORIZATION"] = "Bearer invalid_token"
+    response = client.get("/api/auth/me")
+    assert response.status_code == 401
+    assert "error" in response.json
+    assert "Invalid token" in response.json["error"]
+
+def test_logout(auth_client):
+    """Test user logout."""
+    response = auth_client.get("/api/auth/logout")
+    assert response.status_code == 200
+    assert "message" in response.json
+    assert "Logged out successfully" in response.json["message"]
+    
+    # Verify token is invalidated
+    response = auth_client.get("/api/auth/me")
+    assert response.status_code == 401 
