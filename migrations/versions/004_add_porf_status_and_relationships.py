@@ -1,6 +1,6 @@
 """add porf status and relationships
 
-Revision ID: 004
+Revision ID: 004_add_porf_status_and_relationships
 Revises: 001
 Create Date: 2024-03-19 10:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '004'
+revision = '004_add_porf_status_and_relationships'
 down_revision = '001'
 branch_labels = None
 depends_on = None

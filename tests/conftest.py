@@ -21,10 +21,14 @@ from app.api import catalog_bp, export_bp, auth_bp
 from app.channels.woot.routes import bp as woot_bp
 from tests.test_config import setup_test_environment, TEST_CONFIG
 
+# Set test environment variables
+os.environ["GOOGLE_SVC_KEY"] = "test-service-key.json"
+os.environ["TWO_WAY_SYNC_ENABLED"] = "true"
+
 # ------------------------------------------------------------------
 # Database – use in-memory SQLite for each test session
 # ------------------------------------------------------------------
-TEST_DB_URL = TEST_CONFIG['DATABASE_URL']
+TEST_DB_URL = "sqlite:///:memory:"
 
 @pytest.fixture(scope="session")
 def engine():
@@ -35,12 +39,9 @@ def engine():
     # Run Alembic migrations against the in-memory DB
     alembic_cfg = Config(Path(__file__).resolve().parent.parent / "alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DB_URL)
-    command.upgrade(alembbic_cfg, "head")
+    command.upgrade(alembic_cfg, "head")
     
-    yield eng
-    
-    # Cleanup
-    eng.dispose()
+    return eng
 
 @pytest.fixture(scope="function")
 def db_session(engine):

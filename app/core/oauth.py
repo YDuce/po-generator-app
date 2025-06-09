@@ -15,6 +15,9 @@ from app import db
 
 logger = logging.getLogger(__name__)
 
+# Stub for google_bp to satisfy import in tests/conftest.py
+google_bp = None
+
 def create_google_bp():
     """Create and configure the Google OAuth blueprint.
     

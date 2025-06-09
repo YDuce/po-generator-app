@@ -6,14 +6,24 @@ Layer: core
 import os
 import logging
 from typing import List, Dict, Any, Optional
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
-TWO_WAY_SYNC_ENABLED = False
+# Get TWO_WAY_SYNC_ENABLED from environment variable, default to False
+TWO_WAY_SYNC_ENABLED = os.environ.get("TWO_WAY_SYNC_ENABLED", "false").lower() == "true"
 
+def check_two_way_sync():
+    """Check if two-way sync is enabled.
+    
+    Raises:
+        RuntimeError: If two-way sync is not enabled.
+    """
+    if not TWO_WAY_SYNC_ENABLED:
+        raise RuntimeError("Two-way sync is not enabled. Set TWO_WAY_SYNC_ENABLED=true to enable.")
 
 class SheetsService:
     """Google Sheets service for spreadsheet operations."""
@@ -28,12 +38,12 @@ class SheetsService:
             key_path = os.environ.get("GOOGLE_SVC_KEY")
             if not key_path:
                 raise ValueError("GOOGLE_SVC_KEY environment variable not set")
-            credentials = Credentials.from_service_account_file(
+            credentials = service_account.Credentials.from_service_account_file(
                 key_path,
-                scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                scopes=['https://www.googleapis.com/auth/spreadsheets']
             )
         
-        self.service = build("sheets", "v4", credentials=credentials)
+        self.service = build('sheets', 'v4', credentials=credentials)
         self.spreadsheets = self.service.spreadsheets()
         logger.info("Sheets service initialized")
 
@@ -70,6 +80,7 @@ class SheetsService:
         Returns:
             Update response
         """
+        check_two_way_sync()
         try:
             body = {
                 "values": values
@@ -90,6 +101,7 @@ class SheetsService:
         self, spreadsheet_id: str, range_name: str, values: List[List[Any]]
     ) -> Dict[str, Any]:
         """Append data to a specific range in a spreadsheet."""
+        check_two_way_sync()
         try:
             body = {"values": values}
             result = (
@@ -109,6 +121,7 @@ class SheetsService:
 
     def clear_sheet_data(self, spreadsheet_id: str, range_name: str) -> Dict[str, Any]:
         """Clear data from a specific range in a spreadsheet."""
+        check_two_way_sync()
         try:
             result = (
                 self.spreadsheets.values()
@@ -130,6 +143,7 @@ class SheetsService:
         self, src_id: str, dst_title: str, folder_id: str
     ) -> tuple[str, str]:
         """Copy ``src_id`` to ``dst_title`` inside ``folder_id``."""
+        check_two_way_sync()
         body = {"name": dst_title, "parents": [folder_id]}
         copy = self.service.files().copy(fileId=src_id, body=body).execute()
         sheet_id = copy["id"]
@@ -138,6 +152,7 @@ class SheetsService:
 
     def append_rows(self, sheet_id: str, rows: List[List[str]]):
         """Append ``rows`` to the first worksheet."""
+        check_two_way_sync()
         body = {"values": rows}
         self.spreadsheets.values().append(
             spreadsheetId=sheet_id,

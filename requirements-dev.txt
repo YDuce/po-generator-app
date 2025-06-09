@@ -1,0 +1,23 @@
+# Development dependencies
+-r requirements.txt
+
+# Additional development tools
+pre-commit==3.5.0
+pytest-asyncio==0.21.1
+pytest-env==1.1.3
+pytest-xdist==3.3.1
+coverage==7.3.2
+ipython==8.17.2
+ipdb==0.13.13
+black==23.9.1
+isort==5.12.0
+flake8==6.1.0
+flake8-docstrings==1.7.0
+flake8-bugbear==23.9.10
+mypy==1.5.1
+mypy-extensions==1.0.0
+types-setuptools==69.0.0.20240225
+types-requests==2.31.0.10
+types-openpyxl==3.1.0.20230807
+types-PyJWT==2.8.0.20240125
+types-Flask-SQLAlchemy==3.0.0.20240125 
