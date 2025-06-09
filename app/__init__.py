@@ -49,13 +49,17 @@ def create_app(test_config=None):
     
     # Register blueprints
     from app.api import catalog_bp, export_bp
-    from app.api.auth import bp as auth_bp, google_bp
+    from app.api.auth import bp as auth_bp
     from app.channels.woot.routes import bp as woot_bp
+    from app.core.oauth import init_oauth
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(catalog_bp)
     app.register_blueprint(export_bp)
     app.register_blueprint(woot_bp)
+
+    # Initialize OAuth
+    google_bp = init_oauth(app)
     app.register_blueprint(google_bp, url_prefix="/login/google")
 
     with app.app_context():

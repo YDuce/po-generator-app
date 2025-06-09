@@ -22,16 +22,13 @@ def create_google_blueprint():
         redirect_to="auth.google_callback"
     )
 
-# Initialize blueprint in create_app() instead of at module level
-google_bp = None
-
 def init_oauth(app):
     """Initialize OAuth configuration.
     
     Args:
         app: Flask application instance
     """
-    global google_bp
     with app.app_context():
         google_bp = create_google_blueprint()
-        app.register_blueprint(google_bp, url_prefix="/login/google") 
+        app.register_blueprint(google_bp, url_prefix="/login/google")
+        return google_bp 
