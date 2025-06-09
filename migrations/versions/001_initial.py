@@ -22,13 +22,19 @@ def upgrade() -> None:
         'users',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('email', sa.String(length=255), nullable=False),
-        sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('google_id', sa.String(length=255), nullable=True),
+        sa.Column('password_hash', sa.String(length=255), nullable=False),
+        sa.Column('first_name', sa.String(length=100), nullable=True),
+        sa.Column('last_name', sa.String(length=100), nullable=True),
+        sa.Column('is_admin', sa.Boolean(), server_default='false', nullable=False),
+        sa.Column('last_login', sa.DateTime(), nullable=True),
+        sa.Column('is_active', sa.Boolean(), server_default='true', nullable=False),
+        sa.Column('company_name', sa.String(length=255), nullable=True),
+        sa.Column('company_address', sa.String(length=512), nullable=True),
+        sa.Column('phone', sa.String(length=50), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('email'),
-        sa.UniqueConstraint('google_id')
+        sa.UniqueConstraint('email')
     )
 
     # Create organisations table
