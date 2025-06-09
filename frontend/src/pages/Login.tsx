@@ -1,90 +1,129 @@
-import { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,
-  Button,
   Container,
-  Paper,
+  Box,
   Typography,
-  CircularProgress,
+  TextField,
+  Button,
+  Paper,
+  Divider,
   Alert,
 } from '@mui/material';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function Login() {
-  const { user, login, loading, error } = useAuth();
+const Login: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const { login, loginWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (user) {
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
-    }
-  }, [user, navigate, location]);
+  const from = location.state?.from?.pathname || '/';
 
-  const handleLogin = () => {
-    login();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await login(email, password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to login');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to login with Google');
+    }
   };
 
   return (
     <Container component="main" maxWidth="xs">
       <Box
         sx={{
-          minHeight: '100vh',
+          marginTop: 8,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            p: 4,
+            padding: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             width: '100%',
           }}
         >
-          <Typography component="h1" variant="h4" gutterBottom>
-            Welcome
+          <Typography component="h1" variant="h5">
+            Sign in
           </Typography>
-          <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-            Sign in to access your account
-          </Typography>
-          
+
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
               {error}
             </Alert>
           )}
 
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <GoogleIcon />}
-            onClick={handleLogin}
-            disabled={loading}
-            fullWidth
-            size="large"
-            sx={{
-              bgcolor: 'white',
-              color: 'text.primary',
-              '&:hover': {
-                bgcolor: 'grey.100',
-              },
-              '&.Mui-disabled': {
-                bgcolor: 'grey.100',
-                color: 'text.secondary',
-              },
-            }}
-          >
-            {loading ? 'Signing in...' : 'Sign in with Google'}
-          </Button>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              id="email"
+              label="Email Address"
+              name="email"
+              autoComplete="email"
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="password"
+              label="Password"
+              type="password"
+              id="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+            />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              sx={{ mt: 3, mb: 2 }}
+              disabled={loading}
+            >
+              Sign In
+            </Button>
+
+            <Divider sx={{ my: 2 }}>OR</Divider>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<GoogleIcon />}
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
+              Sign in with Google
+            </Button>
+          </Box>
         </Paper>
       </Box>
     </Container>
   );
-} 
+};
+
+export default Login; 

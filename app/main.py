@@ -37,15 +37,23 @@ def create_app(config_object=None):
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    CORS(app, supports_credentials=True)
+    CORS(app, supports_credentials=True, resources={
+        r"/api/*": {
+            "origins": ["http://localhost:5173", "http://localhost:5000"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }
+    })
     
     # Initialize OAuth
     init_oauth(app)
     
-    # Register blueprints
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(catalog_bp)
-    app.register_blueprint(export_bp)
+    # Register blueprints with /api prefix
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(catalog_bp, url_prefix='/api/catalog')
+    app.register_blueprint(export_bp, url_prefix='/api/export')
 #     app.register_blueprint(woot_bp)
     
     # Create database tables

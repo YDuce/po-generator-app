@@ -1,49 +1,56 @@
-import React from 'react';
-import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import theme from './theme';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { theme } from './theme';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import PrivateRoute from './components/PrivateRoute';
+import Layout from './components/Layout';
 
-const App: React.FC = () => {
-  const location = useLocation();
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
 
+  if (loading) {
+    return <div>Loading...</div>; // You might want to create a proper loading component
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Add more routes here */}
+    </Routes>
+  );
+}
+
+function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Routes>
-          <Route 
-            path="/login" 
-            element={
-              <Login />
-            } 
-          />
-          <Route 
-            path="/dashboard" 
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } 
-          />
-          <Route 
-            path="/" 
-            element={
-              <Navigate 
-                to="/login" 
-                state={{ from: location }} 
-                replace 
-              />
-            } 
-          />
-        </Routes>
+        <Router>
+          <AppRoutes />
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   );
-};
+}
 
 export default App; 

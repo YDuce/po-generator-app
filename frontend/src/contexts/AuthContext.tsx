@@ -1,99 +1,110 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { authService, googleService } from '../services/api';
 
 interface User {
   id: number;
   email: string;
   name: string;
+  picture?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  login: () => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  logout: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Get API URL from environment or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Configure axios defaults
-  axios.defaults.baseURL = API_URL;
-  axios.defaults.withCredentials = true;
 
   useEffect(() => {
-    const token = new URLSearchParams(location.search).get('token');
-    if (token) {
-      localStorage.setItem('token', token);
-      // Remove token from URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
     checkAuth();
-  }, [location.search]);
+  }, []);
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await axios.get('/api/auth/check');
-      if (response.data.authenticated) {
-        setUser(response.data.user);
-      } else {
-        setUser(null);
-        localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
-      }
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
     } catch (err) {
       setUser(null);
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
     }
   };
 
-  const login = () => {
-    setError(null);
-    window.location.href = '/api/auth/google';
+  const login = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await authService.login({ email, password });
+      setUser(response.user);
+      localStorage.setItem('token', response.token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during login');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { url } = await googleService.getAuthUrl();
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred during Google login');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      setLoading(true);
+      await authService.logout();
       setUser(null);
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
-      navigate('/login');
     } catch (err) {
-      setError('Failed to logout');
+      setError(err instanceof Error ? err.message : 'An error occurred during logout');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const clearError = () => setError(null);
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        loginWithGoogle,
+        logout,
+        clearError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}; 
