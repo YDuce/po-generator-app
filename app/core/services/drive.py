@@ -113,7 +113,7 @@ class DriveService:
         except HttpError as error:
             raise Exception(f"Error deleting file: {error}")
 
-    def create_folder(self, name: str, parent_id: str) -> FileMetadata:
+    def create_folder(self, name: str, parent_id: Optional[str] = None) -> FileMetadata:
         """Create a folder in Drive.
 
         Args:

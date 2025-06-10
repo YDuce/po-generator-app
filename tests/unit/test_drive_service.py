@@ -134,7 +134,7 @@ def test_create_folder(drive_service, mock_drive_api) -> None:
 def test_drive_service_init() -> None:
     """Ensure service initializes with provided credentials."""
     creds = object()
-    with patch("googleapiclient.discovery.build") as build_mock:
+    with patch("app.core.services.drive.build") as build_mock:
         service = DriveService(creds)
         build_mock.assert_called_once_with("drive", "v3", credentials=creds)
         assert service.files
