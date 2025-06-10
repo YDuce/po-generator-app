@@ -38,4 +38,10 @@ class SpreadsheetBuilder:
         return output_path
 
     def get_sheet_data(self) -> None:
-        pass
+        """Return row data from the template workbook.
+
+        Raises:
+            NotImplementedError: Always, until implemented.
+        """
+
+        raise NotImplementedError()

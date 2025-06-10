@@ -10,15 +10,15 @@ class ExportService:
 
     def export_products_to_sheets(self, products: list[Product]) -> dict[str, str]:
         """Export products to Google Sheets."""
-        # Implementation here
-        pass
+        # TODO: implement export logic
+        raise NotImplementedError()
 
     def export_inventory_to_sheets(self, inventory: list[InventoryItem]) -> dict[str, str]:
         """Export inventory to Google Sheets."""
-        # Implementation here
-        pass
+        # TODO: implement export logic
+        raise NotImplementedError()
 
     def export_products_to_drive(self, products: list[Product]) -> dict[str, str]:
         """Export products to Google Drive."""
-        # Implementation here
-        pass 
+        # TODO: implement export logic
+        raise NotImplementedError()
