@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from app.core.services.drive import DriveService
 from app.core.services.sheets import SheetsService
-from app.models.user import User
+from app.core.models.user import User
 from app import db
 
 @pytest.fixture

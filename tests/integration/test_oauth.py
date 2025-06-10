@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.models.user import User
+from app.core.models.user import User
 from flask import url_for
 
 def test_google_oauth_callback(client, db_session) -> None:

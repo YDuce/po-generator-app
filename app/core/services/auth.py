@@ -1,5 +1,6 @@
 from typing import Optional, Any
-from app.models import User, Session
+from app.core.models.user import User
+from app.core.auth.models import Session
 from app.extensions import db
 
 class AuthService:

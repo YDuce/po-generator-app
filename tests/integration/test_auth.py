@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from app.core import oauth
-from app.models.user import User
+from app.core.models.user import User
 from app import db
 from app.core.auth.models import Session
 from app.core.auth.service import AuthService
