@@ -63,12 +63,3 @@ def test_ensure_workspace(monkeypatch) -> None:
         ("porfs", "woot_id"),
         ("pos", "woot_id"),
     ]
-
-def test_workspace_setup() -> None:
-    pass
-
-def test_workspace_teardown() -> None:
-    pass
-
-def test_workspace_reload() -> None:
-    pass 

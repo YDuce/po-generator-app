@@ -94,12 +94,3 @@ def get_mock_responses():
         'sheets': TEST_CONFIG['MOCK_SHEETS_RESPONSES'],
         'oauth': TEST_CONFIG['MOCK_OAUTH_RESPONSES'],
     }
-
-def test_config_setup() -> None:
-    pass
-
-def test_config_teardown() -> None:
-    pass
-
-def test_config_reload() -> None:
-    pass 
