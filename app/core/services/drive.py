@@ -5,7 +5,8 @@ Layer: core
 
 import os
 import logging
-from typing import List, Dict, Any, Optional, BinaryIO
+from typing import Optional
+from app.core.services.google.drive import FileMetadata
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -14,12 +15,13 @@ import io
 
 logger = logging.getLogger(__name__)
 
+
 class DriveService:
     """Google Drive service for file operations."""
-    
+
     def __init__(self, credentials: Optional[Credentials] = None):
         """Initialize Drive service.
-        
+
         Args:
             credentials: Optional Google credentials. If None, loads from GOOGLE_SVC_KEY.
         """
@@ -28,36 +30,33 @@ class DriveService:
             if not key_path:
                 raise ValueError("GOOGLE_SVC_KEY environment variable not set")
             credentials = Credentials.from_service_account_file(
-                key_path,
-                scopes=["https://www.googleapis.com/auth/drive"]
+                key_path, scopes=["https://www.googleapis.com/auth/drive"]
             )
-        
+
         self.service = build("drive", "v3", credentials=credentials)
         self.files = self.service.files()
         logger.info("Drive service initialized")
 
     def list_files(self, folder_id: str) -> list[FileMetadata]:
         """List files in Drive.
-        
+
         Args:
             folder_id: Optional folder ID to list files from
-            
+
         Returns:
             List of file metadata
         """
         query = f"'{folder_id}' in parents" if folder_id else None
         try:
             results = self.files.list(
-                q=query,
-                pageSize=100,
-                fields="nextPageToken, files(id, name, mimeType)"
+                q=query, pageSize=100, fields="nextPageToken, files(id, name, mimeType)"
             ).execute()
             return results.get("files", [])
         except Exception as e:
             logger.error(f"Error listing files: {e}")
             raise
 
-    def get_file(self, file_id: str, fields: str = '*') -> FileMetadata:
+    def get_file(self, file_id: str, fields: str = "*") -> FileMetadata:
         """Get metadata for a specific file."""
         try:
             return self.files.get(fileId=file_id, fields=fields).execute()
@@ -77,10 +76,28 @@ class DriveService:
         except HttpError as error:
             raise Exception(f"Error downloading file: {error}")
 
-    def upload_file(self, file_path: str, mime_type: str, parents: Optional[list[str]] = None) -> FileMetadata:
-        """Upload a file to Google Drive."""
+    def upload_file(
+        self,
+        file_path: str,
+        mime_type: str,
+        parents: Optional[list[str]] = None,
+        name: Optional[str] = None,
+    ) -> FileMetadata:
+        """Upload a file to Google Drive.
+
+        Args:
+            file_path: Path to the file to upload.
+            mime_type: MIME type of the file.
+            parents: Optional list of parent folder IDs.
+            name: Optional name for the uploaded file. Defaults to the basename
+                of ``file_path``.
+        """
         try:
-            file_metadata = {"name": name}
+            file_name = name or os.path.basename(file_path)
+            file_metadata = {"name": file_name}
+            if parents:
+                file_metadata["parents"] = parents
+
             media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
             file = self.files.create(
                 body=file_metadata, media_body=media, fields="id"
@@ -98,26 +115,20 @@ class DriveService:
 
     def create_folder(self, name: str, parent_id: str) -> FileMetadata:
         """Create a folder in Drive.
-        
+
         Args:
             name: Folder name
             parent_id: Optional parent folder ID
-            
+
         Returns:
             Created folder metadata
         """
-        file_metadata = {
-            "name": name,
-            "mimeType": "application/vnd.google-apps.folder"
-        }
+        file_metadata = {"name": name, "mimeType": "application/vnd.google-apps.folder"}
         if parent_id:
             file_metadata["parents"] = [parent_id]
-            
+
         try:
-            file = self.files.create(
-                body=file_metadata,
-                fields="id"
-            ).execute()
+            file = self.files.create(body=file_metadata, fields="id").execute()
             logger.info(f"Created folder: {name}")
             return file
         except Exception as e:
