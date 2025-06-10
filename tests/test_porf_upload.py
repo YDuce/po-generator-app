@@ -1,6 +1,6 @@
 import io
-from app.core.services.drive import DriveService
-from app.core.services.sheets import SheetsService
+from app.core.services.google.drive import DriveService
+from app.core.services.google.sheets import SheetsService
 import types
 
 def test_porf_upload(client, monkeypatch) -> None:

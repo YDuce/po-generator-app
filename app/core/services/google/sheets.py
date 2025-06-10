@@ -6,8 +6,11 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
+TWO_WAY_SYNC_ENABLED = os.environ.get("TWO_WAY_SYNC_ENABLED", "false").lower() == "true"
 
 class SheetResponse(TypedDict):
     """Type for Google Sheets API response."""
@@ -17,7 +20,7 @@ class SheetResponse(TypedDict):
     updatedColumns: int
     updatedCells: int
 
-class GoogleSheetsService:
+class SheetsService:
     """Service for interacting with Google Sheets."""
     
     def __init__(self, credentials: Credentials) -> None:
@@ -169,4 +172,32 @@ class GoogleSheetsService:
             return result
         except HttpError as error:
             logger.error(f"Failed to create sheet with title {title}: {error}")
-            raise 
+            raise
+
+    def open_sheet(self, sheet_id: str) -> Dict[str, Any]:
+        """Return the spreadsheet metadata."""
+        return cast(Dict[str, Any], self.spreadsheets.get(spreadsheetId=sheet_id).execute())
+
+    def copy_template(self, src_id: str, dst_title: str, folder_id: str) -> tuple[str, str]:
+        """Copy ``src_id`` to ``dst_title`` inside ``folder_id``."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
+        body = {"name": dst_title, "parents": [folder_id]}
+        copy = self.service.files().copy(fileId=src_id, body=body).execute()
+        sheet_id = copy["id"]
+        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}"
+        return sheet_id, url
+
+    def append_rows(self, sheet_id: str, rows: List[List[str]]) -> SheetResponse:
+        """Append ``rows`` to the first worksheet."""
+        if not TWO_WAY_SYNC_ENABLED:
+            raise RuntimeError("two-way sync disabled")
+        body = {"values": rows}
+        result = self.spreadsheets.values().append(
+            spreadsheetId=sheet_id,
+            range="A1",
+            valueInputOption="USER_ENTERED",
+            insertDataOption="INSERT_ROWS",
+            body=body,
+        ).execute()
+        return cast(SheetResponse, result)

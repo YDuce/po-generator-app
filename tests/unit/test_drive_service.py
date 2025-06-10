@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.core.services.drive import DriveService
+from app.core.services.google.drive import DriveService
 
 class MockDriveAPI:
     """Mock Google Drive API."""

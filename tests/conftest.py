@@ -172,7 +172,7 @@ def mock_drive_service(monkeypatch):
         def ensure_subfolder(self, parent_id, name):
             return f"{name}_folder_id"
     
-    monkeypatch.setattr("app.core.services.drive.DriveService", MockDriveService)
+    monkeypatch.setattr("app.core.services.google.drive.DriveService", MockDriveService)
     return MockDriveService()
 
 @pytest.fixture(scope="function")
@@ -190,5 +190,5 @@ def mock_sheets_service(monkeypatch):
         def append_rows(self, sheet_id, rows):
             pass
     
-    monkeypatch.setattr("app.core.services.sheets.SheetsService", MockSheetsService)
+    monkeypatch.setattr("app.core.services.google.sheets.SheetsService", MockSheetsService)
     return MockSheetsService()

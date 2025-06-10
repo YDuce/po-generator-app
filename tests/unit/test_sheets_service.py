@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.core.services.sheets import SheetsService
+from app.core.services.google.sheets import SheetsService
 
 class MockSheetsAPI:
     """Mock Google Sheets API."""

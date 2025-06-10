@@ -20,7 +20,7 @@ class FileMetadata(TypedDict):
     mimeType: str
     parents: Optional[List[str]]
 
-class GoogleDriveService:
+class DriveService:
     """Service for interacting with Google Drive."""
 
     def __init__(self, credentials: Optional[Credentials] = None) -> None:
@@ -285,4 +285,38 @@ class GoogleDriveService:
             ).execute())
         except HttpError as error:
             logger.error(f"Failed to create folder {name}: {error}")
-            raise 
+            raise
+
+    def ensure_workspace(self, org_id: str) -> str:
+        """Return the workspace folder for an organisation, creating subfolders as needed."""
+        query = (
+            f"name = 'Your-App-Workspace-{org_id}' and "
+            "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        )
+        existing = self.list_files(query)
+        if existing:
+            root_id = existing[0]["id"]
+        else:
+            folder = self.create_folder(f"Your-App-Workspace-{org_id}", "root")
+            root_id = folder["id"]
+
+        woot_id = self.ensure_subfolder(root_id, "woot")
+        self.ensure_subfolder(woot_id, "porfs")
+        self.ensure_subfolder(woot_id, "pos")
+        return root_id
+
+    def ensure_subfolder(self, parent_id: str, path: str) -> str:
+        """Ensure subfolder ``path`` exists under ``parent_id`` and return its ID."""
+        current = parent_id
+        for name in path.split("/"):
+            query = (
+                f"name = '{name}' and '{current}' in parents and "
+                "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+            )
+            existing = self.list_files(query)
+            if existing:
+                current = existing[0]["id"]
+            else:
+                folder = self.create_folder(name, current)
+                current = folder["id"]
+        return current

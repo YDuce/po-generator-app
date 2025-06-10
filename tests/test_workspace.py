@@ -1,4 +1,4 @@
-from app.core.services.drive import DriveService
+from app.core.services.google.drive import DriveService
 import types
 
 

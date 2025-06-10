@@ -5,7 +5,7 @@ Layer: api
 
 from flask import Blueprint, request, jsonify
 from app.core.models.product import MasterProduct, InventoryRecord
-from app.core.services.sheets import SheetsService
+from app.core.services.google.sheets import SheetsService
 from app import db
 from flask import Response
 

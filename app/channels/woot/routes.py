@@ -23,8 +23,8 @@ from app.channels.woot.models import (
 from app.channels.woot.service import WootService, WootOrderService
 from app.channels.woot.logic import ingest_porf
 from app.core import oauth
-from app.core.services.sheets import SheetsService
-from app.core.services.drive import DriveService
+from app.core.services.google.sheets import SheetsService
+from app.core.services.google.drive import DriveService
 from app.core.auth.service import AuthService
 from app.core.models.user import User
 from app.core.models.organisation import Organisation

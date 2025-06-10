@@ -11,8 +11,8 @@ from io import BytesIO
 from typing import BinaryIO, Dict, List, TypedDict, cast
 
 from app import db
-from app.core.services.drive import DriveService
-from app.core.services.sheets import SheetsService
+from app.core.services.google.drive import DriveService
+from app.core.services.google.sheets import SheetsService
 from .models import WootPorf, WootPorfLine, WootPorfStatus
 
 logger = logging.getLogger(__name__)

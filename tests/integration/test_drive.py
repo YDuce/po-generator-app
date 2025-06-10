@@ -1,14 +1,14 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from app.core.services.drive import DriveService
-from app.core.services.sheets import SheetsService
+from app.core.services.google.drive import DriveService
+from app.core.services.google.sheets import SheetsService
 from app.models.user import User
 from app import db
 
 @pytest.fixture
 def mock_drive_service():
     """Create a mock DriveService with realistic behavior."""
-    with patch('app.core.services.drive.DriveService') as mock:
+    with patch('app.core.services.google.drive.DriveService') as mock:
         service = mock.return_value
         service.list_files.return_value = []
         service.create_folder.return_value = {'id': 'mock_folder_id'}
@@ -18,7 +18,7 @@ def mock_drive_service():
 @pytest.fixture
 def mock_sheets_service():
     """Create a mock SheetsService with realistic behavior."""
-    with patch('app.core.services.sheets.SheetsService') as mock:
+    with patch('app.core.services.google.sheets.SheetsService') as mock:
         service = mock.return_value
         service.create_spreadsheet.return_value = {'id': 'mock_sheet_id'}
         yield service

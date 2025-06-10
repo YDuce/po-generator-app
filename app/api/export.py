@@ -4,8 +4,8 @@ Layer: api
 """
 
 from flask import Blueprint, request, jsonify, Response
-from app.core.services.sheets import SheetsService
-from app.core.services.drive import DriveService
+from app.core.services.google.sheets import SheetsService
+from app.core.services.google.drive import DriveService
 from app.core.models.product import MasterProduct, InventoryRecord
 from app import db
 

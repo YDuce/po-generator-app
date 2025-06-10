@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from app import db
 from app.channels.base import ChannelInterface
 from app.channels.woot.models import WootPorf, WootPo, WootPorfLine, WootPoLine, WootPorfStatus, WootPoStatus, PORF, PO, PORFLine, POLine
-from app.core.services.google.drive import GoogleDriveService as DriveService
-from app.core.services.google.sheets import GoogleSheetsService as SheetsService
+from app.core.services.google.drive import DriveService
+from app.core.services.google.sheets import SheetsService
 from app.channels.woot.client import WootClient, OrderData, InventoryItem
 from app.core.interfaces import BaseChannelOrderService
 
