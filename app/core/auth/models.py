@@ -1,19 +1,12 @@
-"""Authentication models."""
-
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
-from sqlalchemy.orm import relationship
+from app.extensions import db
 from app.core.models.base import BaseModel
-from app.core.models.user import User
 
-class Session(BaseModel):
-    """User session model."""
-    __tablename__ = 'sessions'
-    
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    token = Column(String(255), unique=True, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    last_activity = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='sessions') 
+class User(BaseModel):
+    __tablename__ = 'users'
+    email = db.Column(db.String, unique=True, nullable=False)
+    password_hash = db.Column(db.String, nullable=True)
+    first_name = db.Column(db.String)
+    last_name = db.Column(db.String)
+    google_id = db.Column(db.String, unique=True)
+    organisation_id = db.Column(db.Integer, db.ForeignKey('organisations.id'), nullable=False)
+    organisation    = db.relationship('Organisation', backref='users')

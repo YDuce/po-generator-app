@@ -2,7 +2,6 @@ from flask import Blueprint, jsonify
 
 bp = Blueprint('health', __name__)
 
-@bp.route('/health')
-def health_check():
-    """Health check endpoint."""
-    return jsonify({"status": "ok"}) 
+@bp.route('/', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok'}), 200

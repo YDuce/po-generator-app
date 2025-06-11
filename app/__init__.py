@@ -1,69 +1,51 @@
-"""
-Flask application factory.
-
-This module contains the application factory function that creates and configures
-the Flask application. It initializes all extensions and registers blueprints.
-"""
-
-import os
-import logging
 from flask import Flask
 from dotenv import load_dotenv
-from .config import DevelopmentConfig, ProductionConfig
-from .extensions import db, login, migrate, cors
-from .api.health import bp as health_bp
+import os, logging, json
+from google.oauth2 import service_account
+
+from .config import config
+from .extensions import db, migrate, cors
 from .api.auth import bp as auth_bp
+from .api.health import bp as health_bp
+from .api.organisation import bp as organisation_bp
 from .core.oauth import init_oauth
 
-# Load environment variables from .env
 load_dotenv()
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s')
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-def create_app(config_name=None):
-    """Create Flask application instance."""
+def create_app(env=None):
     app = Flask(__name__, instance_relative_config=True)
+    env = env or os.getenv('FLASK_ENV', 'development')
+    app.config.from_object(config.get(env, config['default']))
+    logging.info(f"Starting app in {env} mode")
 
-    # Load configuration
-    env = config_name or os.getenv('FLASK_ENV', 'development')
-    if env == 'production':
-        app.config.from_object(ProductionConfig)
-    else:
-        app.config.from_object(DevelopmentConfig)
-    logger.info("Environment: %s", env)
+    key = json.loads(os.getenv('GOOGLE_SVC_KEY', '{}'))
+    creds = service_account.Credentials.from_service_account_info(
+        key,
+        scopes=[
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets'
+        ],
+    )
+    app.config['GOOGLE_SVC_CREDS'] = creds
 
-    # Log key config values
-    logger.info("SECRET_KEY set: %s", 'Yes' if app.config.get('SECRET_KEY') else 'No')
-    logger.info("DATABASE_URL: %s", app.config.get('DATABASE_URL'))
-    logger.info("FRONTEND_URL: %s", app.config.get('FRONTEND_URL'))
-
-    # Ensure instance folder exists
     os.makedirs(app.instance_path, exist_ok=True)
 
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-    login.init_app(app)
-    cors.init_app(app, resources={r"/*": {"origins": app.config.get('FRONTEND_URL') or '*'}})
-    logger.info("Extensions initialized successfully")
+    cors.init_app(app, resources={r"/*": {"origins": app.config['CORS_ORIGINS']}})
 
-    # Initialize OAuth (registers Google OAuth blueprint at /login/google)
+    # OAuth setup
     init_oauth(app)
-    logger.info("OAuth initialized successfully")
 
     # Register blueprints
-    app.register_blueprint(health_bp, url_prefix="/health")
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    logger.info("Blueprints registered successfully")
+    app.register_blueprint(health_bp, url_prefix='/health')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(organisation_bp, url_prefix='/api/organisation')
 
-    # Ensure database tables exist
+    # Create tables
     with app.app_context():
         db.create_all()
-        logger.info("Database tables created successfully")
-
     return app

@@ -1,12 +1,7 @@
-import sqlalchemy as sa
-from app.core.models.base import Base
+from app.extensions import db
+from app.core.models.base import BaseModel
 
-class Organisation(Base):
+class Organisation(BaseModel):
     __tablename__ = "organisations"
-    id = sa.Column(sa.Integer, primary_key=True)
-    name = sa.Column(sa.String(128), nullable=False, unique=True)
-    workspace_folder_id = sa.Column(sa.String(128), nullable=True)
-    created_at = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
-    updated_at = sa.Column(sa.DateTime(timezone=True), onupdate=sa.func.now())
-
-__all__ = ["Organisation"]
+    name             = db.Column(db.String, unique=True, nullable=False)
+    drive_folder_id  = db.Column(db.String, nullable=False)
