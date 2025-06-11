@@ -2,7 +2,7 @@
 
 import pytest
 from datetime import datetime
-from app.models.user import User
+from app.core.auth.models import User
 from app.core.models.organisation import Organisation
 from app.channels.woot.models import WootPorf, WootPorfLine, WootPorfStatus
 

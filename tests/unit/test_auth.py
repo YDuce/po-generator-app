@@ -6,7 +6,7 @@ import jwt
 from flask import current_app
 
 from app.core.auth.service import AuthService
-from app.core.models.user import User
+from app.core.auth.models import User
 from app.core.auth.models import Session
 
 def test_create_session(auth_client, db_session):

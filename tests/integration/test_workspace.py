@@ -1,7 +1,7 @@
 """Integration tests for workspace functionality."""
 
 import pytest
-from app.models.user import User
+from app.core.auth.models import User
 from app.core.models.organisation import Organisation
 
 def test_workspace_creation(client, db_session, mock_drive_service) -> None:

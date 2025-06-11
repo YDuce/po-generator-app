@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, MagicMock
-from app.models.user import User
+from app.core.auth.models import User
 from flask import url_for
 
 def test_google_oauth_callback(client, db_session) -> None:
@@ -129,7 +129,7 @@ def test_google_callback_success(client, db_session, mock_oauth_responses) -> No
         assert "token=" in response.location
         
         # Verify user was created
-        from app.core.models.user import User
+        from app.core.auth.models import User
         user = User.query.filter_by(email=mock_oauth_responses["user_info"]["email"]).first()
         assert user is not None
         assert user.first_name == mock_oauth_responses["user_info"]["given_name"]

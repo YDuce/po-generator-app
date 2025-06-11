@@ -99,7 +99,7 @@ def auth_client(app, db_session):
     with app.test_client() as client:
         with app.app_context():
             # Create test user
-            from app.core.models.user import User
+            from app.core.auth.models import User
             user = User(
                 email="test@example.com",
                 password_hash="test_hash",
@@ -110,8 +110,8 @@ def auth_client(app, db_session):
             db_session.commit()
             
             # Create JWT token
-            from app.api.auth import create_jwt_token
-            token = create_jwt_token(user)
+            from app.core.auth.service import create_jwt_for_user
+            token = create_jwt_for_user(user)
             
             # Set token in headers
             client.environ_base['HTTP_AUTHORIZATION'] = f'Bearer {token}'
@@ -127,7 +127,7 @@ def oauth_client(app, db_session):
     with app.test_client() as client:
         with app.app_context():
             # Create test user
-            from app.core.models.user import User
+            from app.core.auth.models import User
             user = User(
                 email="test@example.com",
                 password_hash="test_hash",
