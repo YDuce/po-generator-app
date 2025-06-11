@@ -1,19 +1,27 @@
-"""Authentication models."""
+"""Authentication models.
 
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
-from sqlalchemy.orm import relationship
-from app.core.models.base import BaseModel
-from app.core.models.user import User
+Layer: core
+"""
+from __future__ import annotations
 
-class Session(BaseModel):
-    """User session model."""
-    __tablename__ = 'sessions'
-    
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    token = Column(String(255), unique=True, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    last_activity = Column(DateTime, nullable=False, default=datetime.utcnow)
-    
-    # Relationships
-    user = relationship('User', back_populates='sessions') 
+from app.extensions import db
+
+__all__ = ["User"]
+
+
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String, unique=True, nullable=False)
+    password_hash = db.Column(db.String, nullable=True)
+    first_name = db.Column(db.String)
+    last_name = db.Column(db.String)
+    google_id = db.Column(db.String, unique=True)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+        }
