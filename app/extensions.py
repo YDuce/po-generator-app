@@ -10,6 +10,7 @@ from flask_cors import CORS
 
 __all__ = ["db", "migrate", "cors"]
 
+# Instantiate extensions
 db = SQLAlchemy()
 migrate = Migrate()
 cors = CORS()
