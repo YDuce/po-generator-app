@@ -1,69 +1,58 @@
-# app/__init__.py
 from __future__ import annotations
 
-import json
-import logging
-import os
-import sys
-
-from dotenv import load_dotenv
+import json, logging, os
 from flask import Flask
 from google.oauth2 import service_account
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 
-from .api.auth import bp as auth_bp
-from .api.health import bp as health_bp
+from .extensions   import db, migrate, cors
+from .config       import config
+from .core.oauth   import init_oauth
+from .api.health   import bp as health_bp
+from .api.auth     import bp as auth_bp
 from .api.organisation import bp as organisation_bp
-from config import config
-from .core.oauth import init_oauth
-from .extensions import db, migrate, cors
-
-
-def _google_creds() -> service_account.Credentials:
-    raw = os.getenv("GOOGLE_SVC_KEY")
-    if not raw:
-        sys.exit("GOOGLE_SVC_KEY missing — aborting.")
-    try:
-        key_dict = json.loads(raw)
-    except json.JSONDecodeError:
-        sys.exit("GOOGLE_SVC_KEY is not valid JSON.")
-    return service_account.Credentials.from_service_account_info(
-        key_dict,
-        scopes=[
-            "https://www.googleapis.com/auth/drive",
-            "https://www.googleapis.com/auth/spreadsheets",
-        ],
-    )
-
+from channels.woot.routes import bp as woot_bp
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)s %(message)s")
 
 def create_app(env: str | None = None) -> Flask:
-    load_dotenv()                                # moved inside the factory
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-    )
-
     app = Flask(__name__, instance_relative_config=True)
+    env_name = env or os.getenv("FLASK_ENV", "development")
+    app.config.from_object(config[env_name])
+    logging.info("Starting app in %s mode", env_name)
 
-    env = env or os.getenv("FLASK_ENV", "development")
-    try:
-        app.config.from_object(config[env])
-    except KeyError:
-        sys.exit("Unknown FLASK_ENV '{env}'")
+    svc_key = os.getenv("GOOGLE_SVC_KEY")
+    creds = None
+    if svc_key:
+        key_json = json.loads(svc_key)
+        creds = service_account.Credentials.from_service_account_info(
+            key_json,
+            scopes=[
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/spreadsheets",
+            ],
+        )
+    app.config["GOOGLE_SVC_CREDS"] = creds
 
-    app.config["GOOGLE_SVC_CREDS"] = _google_creds()
-
-    # Flask-SQLAlchemy / Alembic
+    os.makedirs(app.instance_path, exist_ok=True)
     db.init_app(app)
+    if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+        @event.listens_for(Engine, "connect")
+        def _set_sqlite_pragma(dbapi_connection, _):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
     migrate.init_app(app, db)
-
-    # CORS (safe default to '*')
-    origins = app.config.get("CORS_ORIGINS", "*")
-    cors.init_app(app, resources={r"/*": {"origins": origins}})
+    cors.init_app(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
 
     init_oauth(app)
 
-    app.register_blueprint(health_bp, url_prefix="/health")
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(organisation_bp, url_prefix="/api/organisation")
+    app.register_blueprint(health_bp)
+    app.register_blueprint(auth_bp,          url_prefix="/api/auth")
+    app.register_blueprint(organisation_bp,  url_prefix="/api/organisation")
+    app.register_blueprint(woot_bp,         url_prefix="/api/woot")
 
+    with app.app_context():
+        pass
     return app

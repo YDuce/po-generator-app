@@ -1,21 +1,21 @@
 from flask import Blueprint, request, jsonify, current_app
-from app.extensions import db
+from flask.typing import ResponseReturnValue
 from app.core.services.google.drive import GoogleDriveService
 from app.core.services.organisation import OrganisationService
 
 bp = Blueprint("organisation", __name__)
 
 @bp.post("/create")
-def create_org():
+def create_org() -> ResponseReturnValue:
     data = request.get_json() or {}
     name = data.get("name")
-    email = data.get("admin_email")
-    if not name or not email:
+    admin = data.get("admin_email")
+    if not name or not admin:
         return jsonify({"error": "name and admin_email required"}), 400
 
-    svc = OrganisationService(GoogleDriveService(current_app.config["GOOGLE_SVC_CREDS"]))
+    drive = GoogleDriveService(current_app.config["GOOGLE_SVC_CREDS"])
     try:
-        org = svc.create_organisation(name, email)
+        org = OrganisationService(drive).create_organisation(name, admin)
     except ValueError as e:
         return jsonify({"error": str(e)}), 409
 
