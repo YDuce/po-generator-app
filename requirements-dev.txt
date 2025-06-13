@@ -10,7 +10,7 @@ pytest-mock==3.12.0
 # Type checking
 mypy==1.8.0
 types-requests==2.31.0.20240125
-types-PyJWT==2.8.0.20240106
+types-PyJWT==1.7.1
 
 # Linting and formatting
 ruff==0.2.1
