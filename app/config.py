@@ -1,6 +1,7 @@
 from __future__ import annotations
 from datetime import timedelta
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 class _Env(BaseSettings):
     database_url: str = Field("sqlite:///instance/dev.db", env="DATABASE_URL")

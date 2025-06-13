@@ -1,3 +1,1 @@
-"""
-This module contains database migration files.
-""" 
+"""Database migration scripts."""
