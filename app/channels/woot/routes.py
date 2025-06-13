@@ -1,10 +1,9 @@
 from flask import Blueprint, request, jsonify
-from app.channels.woot.service import WootService
+from .service import WootService
 
-bp=Blueprint('woot',__name__,url_prefix='/api/woot')
+bp = Blueprint("woot", __name__, url_prefix="/api/woot")
 
-@bp.route('/porf',methods=['POST'])
+@bp.post("/porf")
 def create_porf():
-    svc=WootService()
-    p=svc.create_porf(request.get_json())
-    return jsonify(p.to_dict()),201
+    porf = WootService().create_porf(request.get_json())
+    return jsonify(porf.to_dict()), 201
