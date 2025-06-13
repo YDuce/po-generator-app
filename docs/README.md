@@ -30,6 +30,14 @@ app/
 └── utils/        # Utility functions and helpers
 ```
 
+### Key Documents
+
+- [Requirements](./requirements.md) - Key requirements and constraints for the project
+- [Improvement Plan](./plan.md) - Detailed plan for enhancing the application
+- [API Documentation](./api.md) - Complete API reference
+- [Authentication System](./authentication.md) - Authentication flow and implementation
+- [Database Models](./database.md) - Database schema and migrations
+
 ### Key Components
 
 1. **Authentication**

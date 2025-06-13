@@ -1,6 +1,16 @@
 # PO Generator App
 
-A Flask application for managing purchase orders across multiple channels, with a focus on Woot integration.
+A Flask-based application for generating Purchase Orders (POs) with Google Drive integration and multi-channel support.
+
+## Overview
+
+The PO Generator App streamlines the process of creating and managing Purchase Orders across multiple channels. It integrates with Google Drive for document storage and Google Sheets for PO templates, with a current focus on Woot channel integration.
+
+For detailed documentation, please refer to the [docs](./docs) directory:
+- [API Documentation](./docs/api.md)
+- [Authentication System](./docs/authentication.md)
+- [Database Models and Migrations](./docs/database.md)
+- [Improvement Plan](./docs/plan.md)
 
 ## Project Structure
 
@@ -24,13 +34,13 @@ app/
 └─ main.py            # Application factory
 ```
 
-# Prerequisites
+## Prerequisites
 
 - Python 3.11.8 (see `.python-version` for the exact version pin)
-- For Windows users: Download Python 3.11.8 from [python.org](https://www.python.org/downloads/release/python-3118/)
-- For Unix/Mac users: Use [pyenv](https://github.com/pyenv/pyenv) to manage Python versions
+- PostgreSQL database
+- Google Cloud Project with OAuth credentials
 
-## Setting up your environment
+## Quick Start
 
 ### Windows
 1. Install Python 3.11.8 from [python.org](https://www.python.org/downloads/release/python-3118/)
@@ -40,7 +50,7 @@ app/
    ```
 
 ### Unix/Mac
-1. Install Python 3.11 (e.g., `pyenv install 3.11.8`)
+1. Install Python 3.11.8 (e.g., `pyenv install 3.11.8`)
 2. Create a virtual environment:
    ```bash
    python -m venv .venv
@@ -51,28 +61,15 @@ app/
    pip install -r requirements.txt
    ```
 
-The `.python-version` file is used by `pyenv` to automatically select the correct Python version.
+### Configuration
 
-## Setup
-
-1. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Set up environment variables:
+1. Set up environment variables:
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
-4. Initialize the database:
+2. Initialize the database:
    ```bash
    flask db upgrade
    ```
@@ -89,34 +86,48 @@ The `.python-version` file is used by `pyenv` to automatically select the correc
    pytest
    ```
 
-3. Format code:
+3. Code quality tools:
    ```bash
+   # Format code
    black .
-   ```
 
-4. Type checking:
-   ```bash
+   # Type checking
    mypy .
+
+   # Linting
+   flake8
+
+   # Run pre-commit hooks
+   pre-commit run --all-files
    ```
 
 ## API Endpoints
 
-### Woot Channel
+For a complete list of API endpoints and their documentation, see [API Documentation](./docs/api.md).
 
-- `GET /api/woot/orders` - List orders
-- `POST /api/woot/orders` - Create order
-- `GET /api/woot/orders/<order_id>` - Get order
-- `PUT /api/woot/orders/<order_id>` - Update order
-- `GET /api/woot/orders/<order_id>/status` - Get order status
-- `POST /api/woot/export/sheets` - Export to Google Sheets
+### Key Endpoints
+
+- **Authentication**: `/api/auth/google`, `/api/auth/refresh`
+- **User Management**: `/api/auth/me`, `/api/auth/check`
+- **Organisation Management**: `/api/organisations/{id}`
+- **Purchase Order Management**: `/api/purchase-orders`
+- **Woot Channel**: `/api/woot/orders`, `/api/woot/export/sheets`
+
+## Branch Information
+
+This repository follows the Git workflow described in [AGENTS.md](./AGENTS.md). The current branch structure:
+
+- `main`: Production-ready code
+- `pycharm`: Development branch with latest features and improvements
 
 ## Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Run tests and linting
-4. Submit a pull request
+1. Review the [AGENTS.md](./AGENTS.md) file for development conventions
+2. Create a feature branch following the naming convention `feat/<ticket>`
+3. Make your changes following the project's coding standards
+4. Run tests and linting to ensure code quality
+5. Submit a pull request to the appropriate branch
 
 ## License
 
-MIT 
+MIT
