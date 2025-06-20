@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Inventory-manager.iml" filepath="$PROJECT_DIR$/.idea/Inventory-manager.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/po-generator-app.iml" filepath="$PROJECT_DIR$/.idea/po-generator-app.iml" />
     </modules>
   </component>
 </project>

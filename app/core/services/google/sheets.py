@@ -1,12 +1,13 @@
-import os, logging
-from typing import List, TypedDict, Any
+from __future__ import annotations
+
+from typing import Any, TypedDict
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-logger = logging.getLogger(__name__)
-SyncEnabled = os.getenv('TWO_WAY_SYNC_ENABLED','false').lower()=='true'
+SHEETS_SCOPES: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
+
 
 class SheetResponse(TypedDict):
     spreadsheetId: str
@@ -15,40 +16,94 @@ class SheetResponse(TypedDict):
     updatedColumns: int
     updatedCells: int
 
+
 class GoogleSheetsService:
-    def __init__(self, creds: Credentials):
-        if not creds or not creds.valid:
-            raise ValueError('Invalid credentials')
-        self.spreadsheets = build('sheets','v4',credentials=creds).spreadsheets()
+    """Light-weight Sheets helper with optional write protection."""
 
-    @retry(stop=stop_after_attempt(3),wait=wait_exponential())
-    def get_sheet_data(self,id:str,range_name:str)->List[List[Any]]:
-        return self.spreadsheets.values().get(spreadsheetId=id,range=range_name).execute().get('values',[])
+    def __init__(self, creds: Credentials, mutations_allowed: bool = True) -> None:
+        self._creds = creds
+        self._svc = build("sheets", "v4", credentials=creds, cache_discovery=False)
+        self._spreadsheets = self._svc.spreadsheets()
+        self._mutations_allowed = mutations_allowed
 
-    def _check_sync(self):
-        if not SyncEnabled:
-            raise RuntimeError('two-way sync disabled')
+    # ---------------------------------------------------------------- read
 
-    @retry(stop=stop_after_attempt(3),wait=wait_exponential())
-    def update_sheet_data(self,id:str,range_name:str,values:List[List[Any]])->SheetResponse:
-        self._check_sync()
-        return self.spreadsheets.values().update(
-            spreadsheetId=id,range=range_name,valueInputOption='RAW',body={'values':values}
-        ).execute()
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, max=10))
+    def get_values(self, sheet_id: str, rng: str) -> list[list[str]]:
+        resp = (
+            self._spreadsheets.values()
+            .get(spreadsheetId=sheet_id, range=rng)
+            .execute()
+        )
+        return resp.get("values", [])
 
-    @retry(stop=stop_after_attempt(3),wait=wait_exponential())
-    def append_sheet_data(self,id:str,range_name:str,values:List[List[Any]])->SheetResponse:
-        self._check_sync()
-        return self.spreadsheets.values().append(
-            spreadsheetId=id,range=range_name,insertDataOption='INSERT_ROWS',valueInputOption='RAW',body={'values':values}
-        ).execute()
+    # ---------------------------------------------------------------- write
 
-    @retry(stop=stop_after_attempt(3),wait=wait_exponential())
-    def clear_sheet_data(self,id:str,range_name:str)->SheetResponse:
-        self._check_sync()
-        return self.spreadsheets.values().clear(spreadsheetId=id,range=range_name).execute()
+    def _guard(self) -> None:
+        if not self._mutations_allowed:
+            raise RuntimeError("Two-way Sheets sync disabled")
 
-    @retry(stop=stop_after_attempt(3),wait=wait_exponential())
-    def create_sheet(self,title:str,folder_id:str)->dict:
-        self._check_sync()
-        return self.spreadsheets.create(body={'properties':{'title':title}}).execute()
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, max=10))
+    def update_values(
+        self,
+        sheet_id: str,
+        rng: str,
+        rows: list[list[Any]],
+    ) -> SheetResponse:  # type: ignore[override]
+        self._guard()
+        body = {"values": rows}
+        return (
+            self._spreadsheets.values()
+            .update(
+                spreadsheetId=sheet_id,
+                range=rng,
+                valueInputOption="RAW",
+                body=body,
+            )
+            .execute()
+        )
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, max=10))
+    def append_values(
+        self,
+        sheet_id: str,
+        rng: str,
+        rows: list[list[Any]],
+    ) -> SheetResponse:  # type: ignore[override]
+        self._guard()
+        body = {"values": rows}
+        return (
+            self._spreadsheets.values()
+            .append(
+                spreadsheetId=sheet_id,
+                range=rng,
+                valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",
+                body=body,
+            )
+            .execute()
+        )
+
+    # ---------------------------------------------------------------- template copy
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, max=10))
+    def copy_template(
+        self,
+        template_id: str,
+        new_title: str,
+        dst_folder: str,
+    ) -> tuple[str, str]:
+        drive = build(
+            "drive", "v3", credentials=self._creds, cache_discovery=False
+        )
+        body: dict[str, Any] = {"name": new_title, "parents": [dst_folder]}
+        new_file = (
+            drive.files()
+            .copy(
+                fileId=template_id,
+                body=body,
+                fields="id,webViewLink",
+            )
+            .execute()
+        )
+        return new_file["id"], new_file["webViewLink"]
