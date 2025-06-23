@@ -15,7 +15,7 @@ def daily_order_counts(db: Session, *, since: date) -> list[dict[str, Any]]:
         db.query(
             func.date(OrderRecord.placed_at).label("day"),
             OrderRecord.channel,
-            func.count().label("cnt"),
+            func.count().label("count"),
         )
         .filter(OrderRecord.placed_at >= since)
         .group_by("day", OrderRecord.channel)

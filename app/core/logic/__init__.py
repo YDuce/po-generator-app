@@ -1,4 +1,9 @@
 from .inventory import InventoryService
-from .orders import OrderSyncService
+from .orders import OrderSyncService, OrderPayload, OrderLinePayload
 
-__all__ = ["InventoryService", "OrderSyncService"]
+__all__ = [
+    "InventoryService",
+    "OrderSyncService",
+    "OrderPayload",
+    "OrderLinePayload",
+]

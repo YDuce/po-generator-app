@@ -1,13 +1,20 @@
-# app/core/__init__.py
 """
-Core – pure domain layer.
+Pure domain layer – *no* Flask, Celery, or external SDKs.
 
-No Flask, Celery or Google APIs may be imported from this package.
-Everything here must be synchronous, deterministic and side-effect free
-(except for SQLAlchemy persistence through injected `session` objects).
+Everything here is synchronous, deterministic, and side-effect-free
+(except for SQLAlchemy persistence through an injected Session).
 """
 
-# Export common interfaces for type-checkers
 from .models.base import BaseModel
+from .logic.inventory import InventoryService
+from .logic.orders import OrderSyncService, OrderPayload, OrderLinePayload
 
-__all__ = ["BaseModel"]
+__all__ = [
+    # models
+    "BaseModel",
+    # logic services
+    "InventoryService",
+    "OrderSyncService",
+    "OrderPayload",
+    "OrderLinePayload",
+]

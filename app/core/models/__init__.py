@@ -1,12 +1,12 @@
 """
-Re-export model classes for convenient imports within the core layer.
+Re-export model classes for convenient imports inside the core layer.
 """
 
 from .base import BaseModel
 from .organisation import Organisation
 from .user import User
 from .product import MasterProduct, InventoryRecord
-from .order import OrderRecord
+from .order import OrderRecord, OrderLine, OrderStatus, Channel
 
 __all__ = [
     "BaseModel",
@@ -15,4 +15,7 @@ __all__ = [
     "MasterProduct",
     "InventoryRecord",
     "OrderRecord",
+    "OrderLine",
+    "OrderStatus",
+    "Channel",
 ]

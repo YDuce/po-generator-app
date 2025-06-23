@@ -1,13 +1,27 @@
 from __future__ import annotations
 
+import os
+import json
+from pathlib import Path
 from typing import Any, TypedDict
 
+from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-SHEETS_SCOPES: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
+_SHEETS_SCOPES: list[str] = ["https://www.googleapis.com/auth/spreadsheets"]
 
+def _default_creds() -> Credentials:
+    raw = os.getenv("GOOGLE_SVC_KEY")
+    if raw is None:
+        raise RuntimeError("Google Sheets credentials not supplied")
+    key_data = (
+        json.loads(Path(raw).read_text()) if Path(raw).is_file() else json.loads(raw)
+    )
+    return service_account.Credentials.from_service_account_info(
+        key_data, scopes=_SHEETS_SCOPES
+    )
 
 class SheetResponse(TypedDict):
     spreadsheetId: str
@@ -16,11 +30,11 @@ class SheetResponse(TypedDict):
     updatedColumns: int
     updatedCells: int
 
-
 class GoogleSheetsService:
     """Light-weight Sheets helper with optional write protection."""
 
-    def __init__(self, creds: Credentials, mutations_allowed: bool = True) -> None:
+    def __init__(self, creds: Credentials | None = None, *, mutations_allowed: bool = True) -> None:
+        creds = creds or _default_creds()
         self._creds = creds
         self._svc = build("sheets", "v4", credentials=creds, cache_discovery=False)
         self._spreadsheets = self._svc.spreadsheets()

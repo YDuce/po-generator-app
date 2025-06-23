@@ -39,9 +39,9 @@ class InventoryService:
     # ---------- reads ----------
 
     def current_qty(self, product: MasterProduct) -> int:
-        stmt = select(func.coalesce(func.sum(InventoryRecord.quantity_delta), 0)).where(
-            InventoryRecord.product_id == product.id
-        )
+        stmt = select(
+            func.coalesce(func.sum(InventoryRecord.quantity_delta), 0)
+        ).where(InventoryRecord.product_id == product.id)
         return self._db.scalar(stmt)  # type: ignore[return-value]
 
     def history(self, product: MasterProduct) -> Sequence[InventoryRecord]:

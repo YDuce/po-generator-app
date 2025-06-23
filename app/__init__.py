@@ -1,4 +1,3 @@
-# app/__init__.py
 from __future__ import annotations
 
 import json
@@ -22,10 +21,6 @@ from channels.woot.routes import bp as woot_bp
 
 __all__ = ["create_app"]
 
-# --------------------------------------------------------------------------- #
-# Logging                                                                     #
-# --------------------------------------------------------------------------- #
-
 _LOGGING_CONFIG: Final = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -39,28 +34,23 @@ _LOGGING_CONFIG: Final = {
         }
     },
     "handlers": {
-        "default": {
-            "class": "logging.StreamHandler",
-            "formatter": "plain",
-            "level": "INFO",
-        }
+        "default": {"class": "logging.StreamHandler", "formatter": "plain", "level": "INFO"}
     },
     "root": {"level": "INFO", "handlers": ["default"]},
 }
 
+_LOGGING_SETUP_DONE = False
+
 
 def _configure_logging() -> None:
-    """Set up stdlib + structlog JSON logging."""
+    global _LOGGING_SETUP_DONE
+    if _LOGGING_SETUP_DONE:
+        return
     dictConfig(_LOGGING_CONFIG)
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
-        cache_logger_on_first_use=True,
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO), cache_logger_on_first_use=True
     )
-
-
-# --------------------------------------------------------------------------- #
-# Application factory                                                         #
-# --------------------------------------------------------------------------- #
+    _LOGGING_SETUP_DONE = True
 
 
 def create_app(env: str | None = None) -> Flask:
@@ -68,45 +58,29 @@ def create_app(env: str | None = None) -> Flask:
 
     app = Flask(__name__, instance_relative_config=True)
 
-    env_name = (
-        env
-        or os.getenv("FLASK_ENV")
-        or os.getenv("APP_ENV")
-        or "development"
-    ).lower()
-    try:
-        app.config.from_object(CONFIG_MAP[env_name])
-    except KeyError as exc:  # pragma: no cover
-        valid = ", ".join(CONFIG_MAP)
-        raise ValueError(f"Unknown config '{env_name}'. Valid keys: {valid}") from exc
+    env_name = (env or os.getenv("FLASK_ENV") or os.getenv("APP_ENV") or "development").lower()
+    cfg_obj = CONFIG_MAP[env_name]()  # instantiate so each app gets its own copy
+    app.config.from_object(cfg_obj)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
-    # ---------------------------------------------------------------- Google credentials
-    raw_key = os.getenv("GOOGLE_SVC_KEY")
-    if raw_key:
-        key_data = (
-            json.loads(Path(raw_key).read_text())
-            if Path(raw_key).is_file()
-            else json.loads(raw_key)
+    if (raw := os.getenv("GOOGLE_SVC_KEY")):
+        key_data = json.loads(Path(raw).read_text()) if Path(raw).is_file() else json.loads(raw)
+        creds = service_account.Credentials.from_service_account_info(
+            key_data,
+            scopes=[
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/spreadsheets",
+            ],
         )
-        scopes = [
-            "https://www.googleapis.com/auth/drive",
-            "https://www.googleapis.com/auth/spreadsheets",
-        ]
-        credentials = service_account.Credentials.from_service_account_info(
-            key_data, scopes=scopes
-        )
-        app.config["GOOGLE_SVC_CREDS"] = credentials
+        app.config["GOOGLE_SVC_CREDS"] = creds
 
-    # ---------------------------------------------------------------- SQLite FK enforcement
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
 
         @event.listens_for(Engine, "connect")
-        def _fk_pragma(dbapi_connection, _):  # noqa: D401
-            dbapi_connection.execute("PRAGMA foreign_keys=ON")
+        def _fk_pragma(conn, _):  # noqa: D401
+            conn.execute("PRAGMA foreign_keys=ON")
 
-    # ---------------------------------------------------------------- Extensions
     db.init_app(app)
     migrate.init_app(app, db)
     cors.init_app(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
@@ -114,7 +88,6 @@ def create_app(env: str | None = None) -> Flask:
     init_celery(app)
     init_oauth(app)
 
-    # ---------------------------------------------------------------- Blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(organisation_bp, url_prefix="/api/organisation")
