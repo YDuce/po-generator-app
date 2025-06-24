@@ -4,8 +4,6 @@ import abc
 import importlib
 from typing import Iterable, Final
 
-from app.core.logic.orders import OrderPayload
-
 __all__ = [
     "ChannelAdapter",
     "Channel",
@@ -40,7 +38,7 @@ class ChannelAdapter(abc.ABC):
     """Every concrete adapter must implement this interface."""
 
     @abc.abstractmethod
-    def fetch_orders(self) -> Iterable[OrderPayload]:  # pragma: no cover
+    def fetch_orders(self) -> Iterable["OrderPayload"]:  # pragma: no cover
         """Yield raw order payloads from the remote channel."""
 
 

@@ -12,13 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.extensions import db
 from .base import BaseModel
 from .product import MasterProduct
-
-
-@unique
-class Channel(str, Enum):
-    WOOT = "woot"
-    AMAZON = "amazon"
-    EBAY = "ebay"
+from app.channels import Channel
 
 
 @unique

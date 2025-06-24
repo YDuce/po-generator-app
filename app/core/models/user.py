@@ -19,7 +19,10 @@ class User(BaseModel):
     last_name: Mapped[str | None] = mapped_column(db.String(120))
 
     allowed_channels: Mapped[list[str]] = mapped_column(
-        db.JSON, nullable=False, default=list, server_default="[]"
+        db.JSON,
+        nullable=False,
+        default=list,
+        server_default=sa_text("'[]'::jsonb"),
     )
 
     organisation_id: Mapped[int] = mapped_column(
@@ -30,10 +33,15 @@ class User(BaseModel):
     organisation: Mapped["Organisation"] = relationship(back_populates="users")
 
     __table_args__ = (
+        CheckConstraint(
+            "jsonb_typeof(allowed_channels) = 'array'",
+            name="ck_users_allowed_channels_array",
+        ),
         db.Index(
             "ix_users_allowed_channels_gin",
             "allowed_channels",
             postgresql_using="gin",
+            postgresql_ops={"allowed_channels": "jsonb_path_ops"},
         ),
     )
 

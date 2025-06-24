@@ -6,7 +6,8 @@ from .base import BaseModel
 from .organisation import Organisation
 from .user import User
 from .product import MasterProduct, InventoryRecord
-from .order import OrderRecord, OrderLine, OrderStatus, Channel
+from .order import OrderRecord, OrderLine, OrderStatus
+from app.channels import Channel
 
 __all__ = [
     "BaseModel",

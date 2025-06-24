@@ -18,14 +18,20 @@ def upgrade() -> None:
             "allowed_channels",
             sa.JSON(),
             nullable=False,
-            server_default="[]",
+            server_default=sa.text("'[]'::jsonb"),
         ),
     )
-    op.execute(
-        """
-        CREATE INDEX ix_users_allowed_channels_gin
-               ON users USING gin (allowed_channels jsonb_path_ops);
-        """
+    op.create_index(
+        "ix_users_allowed_channels_gin",
+        "users",
+        ["allowed_channels"],
+        postgresql_using="gin",
+        postgresql_ops={"allowed_channels": "jsonb_path_ops"},
+    )
+    op.create_check_constraint(
+        "ck_users_allowed_channels_array",
+        "users",
+        "jsonb_typeof(allowed_channels) = 'array'",
     )
 
 
