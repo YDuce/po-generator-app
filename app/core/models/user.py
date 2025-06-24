@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, text as sa_text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.channels import ALLOWED_CHANNELS
 from app.extensions import db
 from .base import BaseModel
 
+
 class User(BaseModel):
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(db.String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(
+        db.String(255), unique=True, nullable=False, index=True
+    )
     password_hash: Mapped[str | None] = mapped_column(db.String(255))
     first_name: Mapped[str | None] = mapped_column(db.String(120))
     last_name: Mapped[str | None] = mapped_column(db.String(120))
@@ -19,15 +22,18 @@ class User(BaseModel):
         db.JSON, nullable=False, default=list, server_default="[]"
     )
 
-    organisations: Mapped[list["Organisation"]] = relationship(
-        "Organisation", secondary="organisation_members", back_populates="members"
+    organisation_id: Mapped[int] = mapped_column(
+        db.Integer,
+        db.ForeignKey("organisations.id", ondelete="CASCADE"),
+        nullable=False,
     )
+    organisation: Mapped["Organisation"] = relationship(back_populates="users")
 
-    # Postgres CHECK to guarantee allowed values even if application bug bypasses validator
     __table_args__ = (
-        CheckConstraint(
-            "allowed_channels <@ '" + "{" + ",".join(ALLOWED_CHANNELS) + "}'::text[]",
-            name="ck_user_allowed_channels_valid",
+        db.Index(
+            "ix_users_allowed_channels_gin",
+            "allowed_channels",
+            postgresql_using="gin",
         ),
     )
 
@@ -40,3 +46,6 @@ class User(BaseModel):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<User {self.email}>"
+
+
+__all__ = ["User"]

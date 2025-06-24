@@ -18,6 +18,7 @@ __all__ = [
 # ───────────────────────────── supported channels ───────────────────────────
 from enum import Enum, unique
 
+
 @unique
 class Channel(str, Enum):
     WOOT = "woot"
@@ -28,10 +29,12 @@ class Channel(str, Enum):
     def __str__(self) -> str:  # pragma: no cover
         return self.value
 
+
 # Single source of truth for validation elsewhere
 ALLOWED_CHANNELS: Final[set[str]] = {c.value for c in Channel}
 
 # ───────────────────────────── adapter contract ─────────────────────────────
+
 
 class ChannelAdapter(abc.ABC):
     """Every concrete adapter must implement this interface."""
@@ -39,6 +42,7 @@ class ChannelAdapter(abc.ABC):
     @abc.abstractmethod
     def fetch_orders(self) -> Iterable[OrderPayload]:  # pragma: no cover
         """Yield raw order payloads from the remote channel."""
+
 
 # ───────────────────────────── in‑memory registry ───────────────────────────
 
@@ -62,6 +66,7 @@ def register(name: str):
 
 # ───────────────────────────── import helpers ───────────────────────────────
 
+
 def import_channel(name: str) -> None:
     """Import ``app.channels.<name>`` so its decorators run.
 
@@ -72,6 +77,7 @@ def import_channel(name: str) -> None:
 
 # Optional lazy‑import fallback (for zero‑downtime adapter rollout).
 # Comment‑out this helper if you prefer to restart workers on every deploy.
+
 
 def _lazy_import_if_needed(name: str) -> None:
     if name in _REGISTRY:
@@ -84,6 +90,7 @@ def _lazy_import_if_needed(name: str) -> None:
 
 
 # ───────────────────────────── public accessor ──────────────────────────────
+
 
 def get_adapter(name: str) -> ChannelAdapter:
     """Return a *new* adapter instance for ``name``.

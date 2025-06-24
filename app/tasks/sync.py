@@ -5,13 +5,19 @@ import os
 from celery import Task
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.channels import import_channel, get_adapter
+from app.channels import import_channel, get_adapter, ALLOWED_CHANNELS
 from app.core.logic.orders import OrderSyncService
 from app.core.models.user import User
 from app.extensions import celery_app, db
 
-for _name in os.getenv("SYNC_CHANNELS", "woot,amazon,ebay").split(","):
-    import_channel(_name)
+for _name in os.getenv("SYNC_CHANNELS", ",".join(ALLOWED_CHANNELS)).split(","):
+    if not _name:
+        continue
+    try:
+        import_channel(_name)
+    except ModuleNotFoundError:  # channel package not yet deployed
+        continue
+
 
 def _sync_user(user: User) -> int:
     """Return count of orders upserted for *user*."""
@@ -26,7 +32,7 @@ def _sync_user(user: User) -> int:
             continue
 
         for payload in adapter.fetch_orders():
-            logic.upsert(payload, user=user)
+            logic.upsert(payload)
             count += 1
 
     return count
@@ -47,6 +53,7 @@ def sync_all_users_orders(self: Task) -> None:  # pragma: no cover
         db.session.remove()
 
     self.get_logger().info("orders synced", extra={"count": total})
+
 
 # Optional beat schedule -----------------------------------------------------
 celery_app.conf.beat_schedule.setdefault(

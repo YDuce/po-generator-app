@@ -1,4 +1,5 @@
 """Channel-independent order tables."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -18,6 +19,7 @@ class Channel(str, Enum):
     WOOT = "woot"
     AMAZON = "amazon"
     EBAY = "ebay"
+
 
 @unique
 class OrderStatus(str, Enum):
