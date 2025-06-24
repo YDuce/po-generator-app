@@ -1,4 +1,3 @@
-"""Celery tasks for periodic synchronisation."""
 from __future__ import annotations
 
 import os
@@ -6,48 +5,50 @@ import os
 from celery import Task
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.extensions import db, celery_app
-from app.core.logic.orders import OrderSyncService
 from app.channels import import_channel, get_adapter
+from app.core.logic.orders import OrderSyncService
+from app.core.models.user import User
+from app.extensions import celery_app, db
 
-# ---------------------------------------------------------------------------
-# Enable / disable adapters per environment:
-#   SYNC_CHANNELS=woot,amazon  (comma-separated, no spaces)
-#   defaults to "woot" if unset.
-# ---------------------------------------------------------------------------
+for _name in os.getenv("SYNC_CHANNELS", "woot,amazon,ebay").split(","):
+    import_channel(_name)
 
-_ENABLED = [name for name in os.getenv("SYNC_CHANNELS", "woot").split(",") if name]
-
-for _name in _ENABLED:
-    import_channel(_name)  # registers adapter via decorator
-
-
-def _sync_adapter(name: str) -> int:
-    session = db.session
-    logic = OrderSyncService(session)
-    adapter = get_adapter(name)
-
+def _sync_user(user: User) -> int:
+    """Return count of orders upserted for *user*."""
+    logic = OrderSyncService(db.session)
     count = 0
-    for payload in adapter.fetch_orders():
-        logic.upsert(payload)
-        count += 1
 
-    try:
-        session.commit()
-    except SQLAlchemyError:
-        session.rollback()
-        raise
+    for name in user.allowed_channels:
+        try:
+            adapter = get_adapter(name)
+        except ValueError:
+            # channel disabled or not deployed – skip cleanly
+            continue
+
+        for payload in adapter.fetch_orders():
+            logic.upsert(payload, user=user)
+            count += 1
+
     return count
 
 
-@celery_app.task(name="sync.orders", bind=True)
-def sync_orders(self: Task) -> None:  # pragma: no cover
-    total = sum(_sync_adapter(name) for name in _ENABLED)
+@celery_app.task(name="sync.all_users_orders", bind=True)
+def sync_all_users_orders(self: Task) -> None:  # pragma: no cover
+    total = 0
+    try:
+        users = db.session.query(User).all()
+        for u in users:
+            total += _sync_user(u)
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        raise
+    finally:
+        db.session.remove()
+
     self.get_logger().info("orders synced", extra={"count": total})
 
-
-# Beat schedule remains unchanged (optional)
+# Optional beat schedule -----------------------------------------------------
 celery_app.conf.beat_schedule.setdefault(
-    "sync-orders-every-15m",
-    {"task": "sync.orders", "schedule": 900},
+    "sync-orders-15m", {"task": "sync.all_users_orders", "schedule": 900}
 )

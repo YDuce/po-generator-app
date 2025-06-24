@@ -18,8 +18,6 @@ class Channel(str, Enum):
     WOOT = "woot"
     AMAZON = "amazon"
     EBAY = "ebay"
-    OTHER = "other"
-
 
 @unique
 class OrderStatus(str, Enum):
