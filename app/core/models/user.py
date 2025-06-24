@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from sqlalchemy import CheckConstraint
+from sqlalchemy import CheckConstraint, text as sa_text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.channels import ALLOWED_CHANNELS
 from app.extensions import db
 from .base import BaseModel
+
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -16,23 +17,25 @@ class User(BaseModel):
     last_name: Mapped[str | None] = mapped_column(db.String(120))
 
     allowed_channels: Mapped[list[str]] = mapped_column(
-        db.JSON, nullable=False, default=list, server_default="[]"
+        db.JSON, nullable=False, default=list, server_default=sa_text("'[]'::jsonb")
     )
 
     organisations: Mapped[list["Organisation"]] = relationship(
         "Organisation", secondary="organisation_members", back_populates="members"
     )
 
-    # Postgres CHECK to guarantee allowed values even if application bug bypasses validator
     __table_args__ = (
+        # ensure JSON is an array; rely on validator for element validity
         CheckConstraint(
-            "allowed_channels <@ '" + "{" + ",".join(ALLOWED_CHANNELS) + "}'::text[]",
-            name="ck_user_allowed_channels_valid",
+            "jsonb_typeof(allowed_channels) = 'array'",
+            name="ck_user_allowed_channels_array",
         ),
     )
 
+    # ---------------------------------------------------------------------
+
     @validates("allowed_channels")
-    def _validate_allowed(self, _key: str, value: list[str]) -> list[str]:  # noqa: D401
+    def _validate_allowed(self, _key: str, value: list[str]) -> list[str]:
         bad = set(value) - ALLOWED_CHANNELS
         if bad:
             raise ValueError(f"invalid channel(s): {', '.join(bad)}")

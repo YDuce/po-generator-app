@@ -23,14 +23,13 @@ class BaseModel(db.Model):  # type: ignore[misc]
 
     # Helpers ----------------------------------------------------------------
 
-    def as_dict(self) -> dict[str, Any]:  # pragma: no cover (mostly for admin dumps)
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
-    # Decimal → str so JSON dumps cleanly
-    @staticmethod
-    def jsonify(val: Any) -> Any:  # pragma: no cover
-        if isinstance(val, Decimal):
-            return str(val)
-        if isinstance(val, datetime):
-            return val.isoformat()
-        return val
+    def as_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {}
+        for c in self.__table__.columns:
+            val = getattr(self, c.name)
+            if isinstance(val, datetime):
+                val = val.isoformat()
+            elif isinstance(val, Decimal):
+                val = str(val)
+            out[c.name] = val
+        return out
