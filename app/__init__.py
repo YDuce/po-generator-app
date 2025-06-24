@@ -17,9 +17,11 @@ from .api import auth_bp, health_bp, organisation_bp
 from .config import CONFIG_MAP
 from .core.auth.oauth import init_oauth
 from .extensions import cors, db, init_celery, migrate
-from channels.woot.routes import bp as woot_bp
 from app.startup import preload_adapters
+
 preload_adapters()
+
+from app.channels.woot.routes import bp as woot_bp
 
 __all__ = ["create_app"]
 

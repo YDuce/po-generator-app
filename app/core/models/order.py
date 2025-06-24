@@ -1,4 +1,5 @@
 """Channel-independent order tables."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,13 +12,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.extensions import db
 from .base import BaseModel
 from .product import MasterProduct
+from app.channels import Channel
 
-
-@unique
-class Channel(str, Enum):
-    WOOT = "woot"
-    AMAZON = "amazon"
-    EBAY = "ebay"
 
 @unique
 class OrderStatus(str, Enum):
