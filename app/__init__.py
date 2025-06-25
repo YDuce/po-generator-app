@@ -30,6 +30,7 @@ init_sync_channels()
 
 # Blueprints defined AFTER registry is filled
 from app.channels.woot.routes import bp as woot_bp  # noqa: E402
+from app.api.ui import bp as ui_bp
 
 __all__ = ["create_app"]
 
@@ -47,7 +48,11 @@ _LOGGING_CONFIG: Final = {
         }
     },
     "handlers": {
-        "default": {"class": "logging.StreamHandler", "formatter": "plain", "level": "INFO"}
+        "default": {
+            "class": "logging.StreamHandler",
+            "formatter": "plain",
+            "level": "INFO",
+        }
     },
     "root": {"level": "INFO", "handlers": ["default"]},
 }
@@ -73,13 +78,21 @@ def create_app(env: str | None = None) -> Flask:
 
     app = Flask(__name__, instance_relative_config=True)
 
-    env_name = (env or os.getenv("FLASK_ENV") or os.getenv("APP_ENV") or "development").lower()
+    env_name = (
+        env or os.getenv("FLASK_ENV") or os.getenv("APP_ENV") or "development"
+    ).lower()
     app.config.from_object(CONFIG_MAP[env_name]())
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     # ─── Google service account (optional) ────────────────────────
     raw_key = app.config["GOOGLE_SVC_KEY"]
+    if not raw_key:
+        default_key = (
+            Path(__file__).resolve().parent.parent / "secrets" / "test-service-key.json"
+        )
+        if default_key.is_file():
+            raw_key = str(default_key)
     creds = None
     if raw_key:
         try:
@@ -97,7 +110,8 @@ def create_app(env: str | None = None) -> Flask:
             )
         except Exception as exc:  # pragma: no cover
             logging.getLogger(__name__).warning(
-                "GOOGLE_SVC_KEY invalid or missing; Drive integration disabled (%s)", exc
+                "GOOGLE_SVC_KEY invalid or missing; Drive integration disabled (%s)",
+                exc,
             )
     app.config["GOOGLE_SVC_CREDS"] = creds
 
@@ -117,6 +131,7 @@ def create_app(env: str | None = None) -> Flask:
     init_oauth(app)
 
     # ─── blueprints ───────────────────────────────────────────────
+    app.register_blueprint(ui_bp)
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(organisation_bp, url_prefix="/api/organisation")

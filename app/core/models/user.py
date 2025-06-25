@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import JSON, String
+from sqlalchemy_utils import EmailType
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.channels import ALLOWED_CHANNELS
@@ -11,10 +12,14 @@ from .base import BaseModel
 class User(BaseModel):
     __tablename__ = "users"
 
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(
+        EmailType(length=255), unique=True, nullable=False, index=True
+    )
 
     organisation_id: Mapped[int] = mapped_column(
-        db.Integer, db.ForeignKey("organisations.id", ondelete="CASCADE"), nullable=False
+        db.Integer,
+        db.ForeignKey("organisations.id", ondelete="CASCADE"),
+        nullable=False,
     )
     organisation: Mapped["Organisation"] = relationship(back_populates="users")
 
