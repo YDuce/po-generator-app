@@ -1,3 +1,7 @@
+"""Celery periodic tasks schedule.
+
+Layer: core
+"""
 from app.tasks.sync import SyncAllUsersOrders
 
 beat_schedule = {

@@ -19,7 +19,7 @@ from .core.auth.oauth import init_oauth
 from .extensions import cors, db, init_celery, migrate
 
 # ─── adapter preload (every process) ─────────────────────────────
-from app.startup import preload_adapters
+from app.tasks.preload import preload_adapters
 
 preload_adapters()
 

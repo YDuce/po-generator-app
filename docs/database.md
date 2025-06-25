@@ -112,8 +112,8 @@ flask db downgrade
 
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-DATABASE_TEST_URL=postgresql://user:password@localhost:5432/test_dbname
+DATABASE_URL=sqlite:///instance/dev.db
+DATABASE_TEST_URL=sqlite:///:memory:
 ```
 
 ### SQLAlchemy Configuration
