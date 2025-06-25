@@ -1,3 +1,8 @@
+"""Channel adapter preloader for Celery workers.
+
+Layer: core
+"""
+
 import logging
 import os
 

@@ -5,7 +5,7 @@ Celery singleton & beat-schedule wiring.
 from app.extensions import celery_app
 
 # ── periodic tasks ---------------------------------------------------------
-from app.celery_beat import beat_schedule
+from .beat import beat_schedule
 
 celery_app.conf.beat_schedule.update(beat_schedule)
 

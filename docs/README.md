@@ -105,7 +105,7 @@ FLASK_ENV=development
 SECRET_KEY=your-secret-key
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/po_generator
+DATABASE_URL=sqlite:///instance/dev.db
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-client-id
