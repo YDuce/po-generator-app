@@ -1,25 +1,16 @@
-"""Channel-independent order tables."""
-
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from enum import Enum, unique
 
 from sqlalchemy import Index, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.channels import Channel
 from app.extensions import db
 from .base import BaseModel
+from .enums import OrderStatus
 from .product import MasterProduct
-from app.channels import Channel
-
-
-@unique
-class OrderStatus(str, Enum):
-    NEW = "new"
-    SHIPPED = "shipped"
-    CANCELLED = "cancelled"
 
 
 class OrderRecord(BaseModel):
@@ -50,27 +41,24 @@ class OrderRecord(BaseModel):
         passive_deletes=True,
     )
 
-    def mark_shipped(self) -> None:
-        self.status = OrderStatus.SHIPPED
-
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<Order {self.channel.value}:{self.ext_id} {self.status}>"
+        return f"<OrderRecord {self.channel.value}:{self.ext_id}>"
 
 
 class OrderLine(BaseModel):
     __tablename__ = "order_lines"
+    __table_args__ = (
+        UniqueConstraint("order_id", "product_id", name="uix_order_product"),
+        Index("ix_order_lines_order_id", "order_id"),
+    )
 
     order_id: Mapped[int] = mapped_column(
-        db.Integer,
-        db.ForeignKey("order_records.id", ondelete="CASCADE"),
-        nullable=False,
+        db.Integer, db.ForeignKey("order_records.id", ondelete="CASCADE"), nullable=False
     )
     order: Mapped["OrderRecord"] = relationship(back_populates="lines")
 
     product_id: Mapped[int] = mapped_column(
-        db.Integer,
-        db.ForeignKey("master_products.id", ondelete="CASCADE"),
-        nullable=False,
+        db.Integer, db.ForeignKey("master_products.id", ondelete="CASCADE"), nullable=False
     )
     product: Mapped["MasterProduct"] = relationship(back_populates="order_lines")
 
@@ -78,4 +66,4 @@ class OrderLine(BaseModel):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
 
     def __repr__(self) -> str:  # pragma: no cover
-        return f"<OrderLine {self.product_id} ×{self.quantity}>"
+        return f"<OrderLine {self.product_id}×{self.quantity}>"

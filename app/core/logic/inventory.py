@@ -1,4 +1,4 @@
-"""Pure stock-mutation helpers."""
+"""Pure, side-effect-free stock-mutation helpers."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,19 +11,20 @@ from app.core.models.product import InventoryRecord, MasterProduct
 
 
 class InventoryService:
+    """Aggregate root for stock-on-hand calculations."""
+
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    # ---------- writes ----------
-
+    # ───────────────────── writes ──────────────────────
     def adjust(
-        self,
-        product: MasterProduct,
-        delta: int,
-        *,
-        source: str,
-        notes: str | None = None,
-        when: datetime | None = None,
+            self,
+            product: MasterProduct,
+            delta: int,
+            *,
+            source: str,
+            notes: str | None = None,
+            when: datetime | None = None,
     ) -> InventoryRecord:
         rec = InventoryRecord(
             product=product,
@@ -33,16 +34,16 @@ class InventoryService:
             created_at=when or datetime.now(timezone.utc),
         )
         self._db.add(rec)
-        self._db.flush()
+        self._db.flush()  # id available to caller
         return rec
 
-    # ---------- reads ----------
-
+    # ───────────────────── reads ───────────────────────
     def current_qty(self, product: MasterProduct) -> int:
-        stmt = select(
-            func.coalesce(func.sum(InventoryRecord.quantity_delta), 0)
-        ).where(InventoryRecord.product_id == product.id)
-        return self._db.scalar(stmt)  # type: ignore[return-value]
+        stmt = (
+            select(func.coalesce(func.sum(InventoryRecord.quantity_delta), 0))
+            .where(InventoryRecord.product_id == product.id)
+        )
+        return self._db.scalar(stmt)
 
     def history(self, product: MasterProduct) -> Sequence[InventoryRecord]:
         return (

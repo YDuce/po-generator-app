@@ -3,21 +3,16 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Union
+from typing import Mapping, Sequence, Union
 
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.core.models.order import (
-    Channel,
-    OrderLine,
-    OrderRecord,
-    OrderStatus,
-)
+from app.core.models.order import Channel, OrderLine, OrderRecord, OrderStatus
 from app.core.models.product import MasterProduct
 
 
-# ---------- canonical payload ------------------------------------------------
+# ────────────────────── canonical payload ──────────────────────
 
 
 class OrderLinePayload(BaseModel):
@@ -33,9 +28,8 @@ class OrderPayload(BaseModel):
     status: OrderStatus
     currency: str = "USD"
     total: str
-    lines: list[OrderLinePayload]
+    lines: Sequence[OrderLinePayload]
 
-    # ensure placed_at is UTC
     @field_validator("placed_at", mode="before")
     @classmethod
     def _ensure_utc(cls, v):  # noqa: ANN001
@@ -44,18 +38,17 @@ class OrderPayload(BaseModel):
         return v.astimezone(timezone.utc)
 
 
-# ---------- service ----------------------------------------------------------
+# ───────────────────────── service ────────────────────────────
 
 
 class OrderSyncService:
+    """Upsert orders + lines in a single transaction."""
+
     def __init__(self, db: Session) -> None:
         self._db = db
 
-    def upsert(self, payload: Union[dict, OrderPayload]) -> OrderRecord:
-        if isinstance(payload, OrderPayload):
-            data = payload.model_dump()
-        else:
-            data = payload
+    def upsert(self, payload: Union[Mapping, OrderPayload]) -> OrderRecord:
+        data = payload.model_dump() if isinstance(payload, BaseModel) else payload
 
         order = (
             self._db.query(OrderRecord)
@@ -76,13 +69,14 @@ class OrderSyncService:
             self._db.flush()
 
             for ln in data["lines"]:
-                prod = self._db.query(MasterProduct).filter_by(sku=ln["sku"]).one()
+                ln_dict = ln if isinstance(ln, dict) else ln.model_dump()
+                prod = self._db.query(MasterProduct).filter_by(sku=ln_dict["sku"]).one()
                 self._db.add(
                     OrderLine(
                         order=order,
                         product=prod,
-                        quantity=int(ln["quantity"]),
-                        unit_price=Decimal(ln["unit_price"]),
+                        quantity=int(ln_dict["quantity"]),
+                        unit_price=Decimal(ln_dict["unit_price"]),
                     )
                 )
         else:

@@ -6,19 +6,26 @@ from .google import GoogleDriveService
 
 
 class OrganisationService:
+    """Orchestrates Organisation CRUD + Drive side effects."""
+
     def __init__(self, drive: GoogleDriveService) -> None:
         self._drive = drive
 
     def create(self, name: str, admin_email: str) -> Organisation:
         if Organisation.query.filter_by(name=name).first():
-            raise ValueError("organisation exists")
+            raise ValueError("organisation already exists")
 
-        folder = self._drive.create_folder(name)
-        org = Organisation(name=name, drive_folder_id=folder["id"])
+        # 1. Create Drive folder
+        folder_meta = self._drive.create_folder(name)
+        folder_id = folder_meta["id"]
+
+        # 2. Persist Organisation row
+        org = Organisation(name=name, drive_folder_id=folder_id)
         db.session.add(org)
-        db.session.flush()
+        db.session.flush()           # org.id available
 
-        self._drive.share_folder(folder["id"], admin_email, role="writer")
+        # 3. Share folder with admin
+        self._drive.share_folder(folder_id, admin_email, role="writer")
 
         db.session.commit()
         return org

@@ -1,12 +1,15 @@
-# app/tasks/__init__.py
 """
-Celery application shared by Flask and workers.
-
-Workers import the instance defined in `app.extensions`, so there is exactly
-one connection pool and one task registry.
+Celery singleton & beat-schedule wiring.
 """
-from __future__ import annotations
 
-from app.extensions import celery_app  # re-export
+from app.extensions import celery_app
+
+# ── periodic tasks ---------------------------------------------------------
+from app.celery_beat import beat_schedule
+
+celery_app.conf.beat_schedule.update(beat_schedule)
+
+# ── task registration (execute decorators) ---------------------------------
+import app.tasks.sync  # noqa: F401  ensures SyncAllUsersOrders is registered
 
 __all__ = ["celery_app"]

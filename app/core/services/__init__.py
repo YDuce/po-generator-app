@@ -1,9 +1,7 @@
-# app/core/services/__init__.py
 """
-Public façade for domain-level application services.
-
-Anything outside *app.core* should import services via this package so that
-implementation modules can evolve privately.
+Public façade for integration / adapter services living outside the pure
+domain layer.  Anything outside *app.core* should import through this
+package so internal module names can evolve freely.
 """
 
 from .organisation import OrganisationService

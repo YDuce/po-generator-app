@@ -14,7 +14,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 cors = CORS()
 
-celery_app = Celery("po_sync_backend", include=["app.tasks"])
+celery_app = Celery("po_sync_backend", include=["app.tasks.sync"])
 
 logger = logging.getLogger(__name__)
 

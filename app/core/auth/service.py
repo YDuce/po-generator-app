@@ -14,9 +14,7 @@ from app.core.models.user import User
 _ALG: Final = "HS256"
 
 
-# ─────────────────────────── JWT helpers ────────────────────────────
-
-
+# ───────────────────────── JWT helpers ──────────────────────────
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -31,10 +29,9 @@ def create_jwt_for_user(user: User) -> str:
     return jwt.encode(payload, cfg["JWT_SECRET"], algorithm=_ALG)  # type: ignore[return-value]
 
 
-# ─────────────────────────── user helpers ───────────────────────────
-
-
+# ──────────────────────── user helpers ──────────────────────────
 def upsert_user(session: Session, info: dict, *, default_org_id: int | None = 1) -> User:
+    """Insert or update a user row from Google user-info."""
     user = session.query(User).filter_by(email=info["email"]).one_or_none()
     if user is None:
         user = User(
@@ -48,20 +45,20 @@ def upsert_user(session: Session, info: dict, *, default_org_id: int | None = 1)
     else:
         user.first_name = info.get("given_name", user.first_name)
         user.last_name = info.get("family_name", user.last_name)
-    session.flush()  # caller commits
+        user.google_id = info.get("id", user.google_id)
+    session.flush()  # id available to caller
     return user
 
 
-# ─────────────────────────── AuthService ────────────────────────────
-
-
+# ───────────────────────── AuthService ─────────────────────────
 class AuthService:
+    """Password-based auth plus helpers."""
+
     def __init__(self, session: Session, *, default_org_id: int | None = 1) -> None:
         self._db = session
         self._default_org_id = default_org_id
 
     # ---------- password users ----------
-
     def create_user(self, email: str, password: str) -> User:
         if self._db.query(User).filter_by(email=email).first():
             raise ValueError("email already registered")

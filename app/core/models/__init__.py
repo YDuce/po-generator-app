@@ -1,13 +1,14 @@
 """
-Re-export model classes for convenient imports inside the core layer.
+Re-export model classes for convenient imports.
+Enums live in app.core.models.enums and app.channels.
 """
 
 from .base import BaseModel
 from .organisation import Organisation
-from .user import User
 from .product import MasterProduct, InventoryRecord
-from .order import OrderRecord, OrderLine, OrderStatus
-from app.channels import Channel
+from .order import OrderRecord, OrderLine
+from .user import User
+from .enums import OrderStatus
 
 __all__ = [
     "BaseModel",
@@ -18,5 +19,4 @@ __all__ = [
     "OrderRecord",
     "OrderLine",
     "OrderStatus",
-    "Channel",
 ]

@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from flask import Flask, current_app, redirect, session
 from flask_dance.consumer import oauth_authorized
-from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.google import google, make_google_blueprint
 from google.oauth2.credentials import Credentials
-from sqlalchemy.orm import Session
 
 from app.core.auth.service import create_jwt_for_user, upsert_user
+from app.extensions import db
 
 
 def init_oauth(app: Flask) -> None:
@@ -19,15 +19,18 @@ def init_oauth(app: Flask) -> None:
     )
     app.register_blueprint(bp, url_prefix="/login")
 
-    @oauth_authorized.connect_via(bp)
+    @oauth_authorized.connect_via(bp)  # type: ignore[arg-type]
     def _on_google_login(_, token: dict | None) -> bool:  # noqa: ANN001
         if token is None:
             return False
+
         resp = google.get("/oauth2/v2/userinfo")
         resp.raise_for_status()
 
-        user = upsert_user(Session.object_session(current_app.extensions["db"].session), resp.json())
+        user = upsert_user(db.session, resp.json())
+        db.session.commit()
         session["google_token"] = token
+
         jwt_token = create_jwt_for_user(user)
         return redirect(f"{current_app.config['FRONTEND_URL']}?token={jwt_token}")
 

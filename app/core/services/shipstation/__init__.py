@@ -1,11 +1,10 @@
-# app/integrations/shipstation/__init__.py
 """
-ShipStation HTTP client + webhook → domain events.
+Public facade for ShipStation integration.
 
-This package purposefully contains **no** SQLAlchemy imports.
+No SQLAlchemy or Flask imports here – this package is pure I/O.
 """
 
 from .client import ShipStationClient
-from .webhook import parse_webhook
+from .webhook import parse_webhook, verify_signature
 
-__all__ = ["ShipStationClient", "parse_webhook"]
+__all__ = ["ShipStationClient", "parse_webhook", "verify_signature"]

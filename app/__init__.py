@@ -17,14 +17,23 @@ from .api import auth_bp, health_bp, organisation_bp
 from .config import CONFIG_MAP
 from .core.auth.oauth import init_oauth
 from .extensions import cors, db, init_celery, migrate
+
+# ─── adapter preload (every process) ─────────────────────────────
 from app.startup import preload_adapters
 
 preload_adapters()
 
-from app.channels.woot.routes import bp as woot_bp
+# Celery-side preload (once)
+from app.tasks.sync import init_sync_channels
+
+init_sync_channels()
+
+# Blueprints defined AFTER registry is filled
+from app.channels.woot.routes import bp as woot_bp  # noqa: E402
 
 __all__ = ["create_app"]
 
+# ─────────────── structured logging config ───────────────────────
 _LOGGING_CONFIG: Final = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -52,39 +61,54 @@ def _configure_logging() -> None:
         return
     dictConfig(_LOGGING_CONFIG)
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO), cache_logger_on_first_use=True
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+        cache_logger_on_first_use=True,
     )
     _LOGGING_SETUP_DONE = True
 
 
+# ─────────────────────────── factory ──────────────────────────────
 def create_app(env: str | None = None) -> Flask:
     _configure_logging()
 
     app = Flask(__name__, instance_relative_config=True)
 
     env_name = (env or os.getenv("FLASK_ENV") or os.getenv("APP_ENV") or "development").lower()
-    cfg_obj = CONFIG_MAP[env_name]()  # instantiate so each app gets its own copy
-    app.config.from_object(cfg_obj)
+    app.config.from_object(CONFIG_MAP[env_name]())
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
-    if (raw := os.getenv("GOOGLE_SVC_KEY")):
-        key_data = json.loads(Path(raw).read_text()) if Path(raw).is_file() else json.loads(raw)
-        creds = service_account.Credentials.from_service_account_info(
-            key_data,
-            scopes=[
-                "https://www.googleapis.com/auth/drive",
-                "https://www.googleapis.com/auth/spreadsheets",
-            ],
-        )
-        app.config["GOOGLE_SVC_CREDS"] = creds
+    # ─── Google service account (optional) ────────────────────────
+    raw_key = app.config["GOOGLE_SVC_KEY"]
+    creds = None
+    if raw_key:
+        try:
+            key_data = (
+                json.loads(Path(raw_key).read_text())
+                if Path(raw_key).is_file()
+                else json.loads(raw_key)
+            )
+            creds = service_account.Credentials.from_service_account_info(
+                key_data,
+                scopes=[
+                    "https://www.googleapis.com/auth/drive",
+                    "https://www.googleapis.com/auth/spreadsheets",
+                ],
+            )
+        except Exception as exc:  # pragma: no cover
+            logging.getLogger(__name__).warning(
+                "GOOGLE_SVC_KEY invalid or missing; Drive integration disabled (%s)", exc
+            )
+    app.config["GOOGLE_SVC_CREDS"] = creds
 
+    # ─── SQLite FK enforcement (dev only) ─────────────────────────
     if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
 
         @event.listens_for(Engine, "connect")
-        def _fk_pragma(conn, _):  # noqa: D401
+        def _fk_pragma(conn, _):  # noqa: ANN001
             conn.execute("PRAGMA foreign_keys=ON")
 
+    # ─── extensions ───────────────────────────────────────────────
     db.init_app(app)
     migrate.init_app(app, db)
     cors.init_app(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
@@ -92,6 +116,7 @@ def create_app(env: str | None = None) -> Flask:
     init_celery(app)
     init_oauth(app)
 
+    # ─── blueprints ───────────────────────────────────────────────
     app.register_blueprint(health_bp)
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(organisation_bp, url_prefix="/api/organisation")
