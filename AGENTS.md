@@ -1,90 +1,187 @@
 # AGENTS.md
 
-## Purpose
+## 1. **Overview (What is it?):**
 
-Unified handbook for all automated agents (Codex, Cursor, CI bots) working on this repository. Defines roles, coding standards, directory layout, and evolution rules. Keeps instructions minimal but explicit, and allows later amendments without conflict.
+* **Inventory Management App** with Google Drive & Sheets integration.
+* Channels (Woot, Amazon, eBay, etc.) each have their own Drive folders.
+* Orders come exclusively from **ShipStation webhooks**.
+* Centralized **core backend** provides data tracking and insights.
+* Channels can implement **additional functionality** based on core data.
 
-## 1. Agent Roles
+---
 
-| Agent      | PrimaryResponsibilities
-| **Codex**  | *Architect & Reviewer* – creates feature branches from `develop`, scaffolds interfaces/stubs, performs code reviews, enforces architecture, updates AGENTS.md when global conventions change. |
-| **Cursor** | *Executor & Refactorer* – live‑codes in feature branches, implements tests, fixes bugs, follows conventions in this doc, opens PRs for Codex review.                                          |
-| **CI bot** | Runs linting, type‑checks, tests. Blocks merge on failures.                                                                                                                                   |
+## 2. **Core Backend Responsibilities:**
 
-> **Note:** Humans may override agents at any time via PR reviews and AGENTS.md edits.
+### 📂 **2.1. Organisation & File Management**
 
-## 2. Layered Architecture (Core → Channels → API)
+* Creates **Drive folders** for organisation channels (Amazon, eBay, etc.).
+* Provides structured access to **user-uploaded spreadsheets**.
+* Allows each channel to have clearly defined folder structures.
+
+### 📥 **2.2. Receiving & Processing Orders**
+
+* Single **ShipStation webhook endpoint**:
+
+  * Verifies webhook authenticity.
+  * Parses incoming order data (Order ID, product SKU, quantities, timestamps, statuses).
+* **Automatically matches** orders to channel spreadsheets based on SKU or Order IDs.
+* **Real-time updates** to relevant spreadsheets via Google Sheets API.
+
+### 📊 **2.3. Data Tracking & Insights**
+
+* Tracks key metrics from webhook data:
+
+  * Product movement frequency.
+  * Inventory turnover rates.
+  * Listing status & age (how long since listed or updated).
+* Generates simple insights:
+
+  * **Slow-moving inventory**.
+  * **Out-of-stock items**.
+  * **Expiring or aged listings**.
+* Maintains structured lists of products needing attention for each channel:
+
+  * "Slow movers"
+  * "Out-of-stock alerts"
+  * "Reallocation candidates"
+
+### 🔗 **2.4. Inter-Channel Communication (Flexible but Simple)**
+
+* Central "reallocation" list managed by the core backend.
+* Channels can read from this list and decide on actions independently.
+* Possible actions channels can take (simple integration points):
+
+  * **Pull from reallocation list**: Accept items marked by other channels for reallocation.
+  * **Push to reallocation list**: Mark slow-moving or unwanted items.
+
+*No forced complexity*: Channels voluntarily implement these actions.
+
+---
+
+## 3. **Individual Channel Responsibilities (Plug-and-Play Concept):**
+
+Channels have complete autonomy in deciding their functionalities but have structured access to core backend data.
+
+### 🛠️ **3.1. Basic Channel Setup (Minimal):**
+
+* Folder creation & spreadsheet setup through core backend.
+* Receive real-time spreadsheet updates from core backend based on ShipStation webhook data.
+
+### ⚡ **3.2. Optional Advanced Channel Features (Clear, Simple Examples):**
+
+**Channels can optionally implement:**
+
+* **Automated Actions** (optional but powerful):
+
+  * Automatically pause, list, or delist products based on slow-moving alerts.
+  * Automatically adjust product pricing or quantity based on core insights.
+* **Channel-specific Export**:
+
+  * Export or generate reports (e.g., PORFs for Woot).
+  * Generate formatted listings or marketing reports (e.g., Amazon or eBay listings).
+* **Inter-Channel Cooperation**:
+
+  * Pull new products from the "reallocation candidates" list to their own inventory automatically or via manual triggers.
+  * Push products onto the reallocation list to share across channels.
+
+This plug-and-play concept makes the channel modules completely independent but capable of powerful actions if they wish.
+
+---
+
+## 4. **Technical Structure (Clean, Simple, Extensible):**
 
 ```
-app/
- ├─ core/        # Vendor‑agnostic domain logic & shared models
- ├─ channels/    # One sub‑package per vendor (woot, amazon, …)
- └─ api/         # HTTP controllers; no business logic
+inventory-manager-app
+│
+├── core
+│   ├── models           # DB models (Orders, Products, Channels)
+│   ├── services         # Google Drive, Sheets, Organisation services
+│   ├── webhooks         # ShipStation webhook handling (single source)
+│   └── insights         # Inventory analysis & tracking
+│
+├── channels
+│   ├── amazon           # Optional Amazon-specific automation/actions
+│   ├── ebay             # Optional eBay-specific automation/actions
+│   └── woot             # Optional Woot-specific automation/actions
+│
+└── api                  # Flask API routes (user/org management, auth)
 ```
 
-*Import rule:* `api → channels → core`. Reverse imports are prohibited.
+### **Responsibilities in each module:**
+
+| Module     | Responsibility                                          |
+| ---------- | ------------------------------------------------------- |
+| `core`     | - Central webhook processing                            |
+|            | - Drive/Sheets management                               |
+|            | - Inventory insights, analysis                          |
+|            | - Reallocation list management                          |
+| `channels` | - Optional channel-specific automation                  |
+|            | - Independent optional integration to reallocation list |
+| `api`      | - User authentication & management                      |
 
 ---
 
-## 3. Coding Standards
+## 5. **Example Simple Workflow (Concrete Scenario):**
 
-* **Language:** Python 3.12
-* **Style:** Closest to PEP 8 + black formatting (line ≤ 100). Dunder `__all__` in public modules.
-* **Type hints:** Mandatory (`mypy --strict`).
-* **Docstrings:** Google style.
-* **Tests:** pytest; one test file per module; ≥90 % coverage per layer.
+### **Step-by-step example:**
 
-### File Headers (auto‑generated by agents)
+* **Organisation creation**:
 
-```python
-"""<Short module summary>
+  * User creates org "MyStore"
+  * Backend creates Drive folders for Amazon, eBay, Woot.
 
-Layer: <core|channels|api>
-"""
-```
+* **User uploads inventory spreadsheet**:
 
----
+  * User uploads spreadsheets with product SKUs to each channel folder.
+  * Backend recognizes files and structures metadata.
 
-## 4. Git Workflow
+* **Order webhook received**:
 
-1. **Codex**: `git switch -c feat/<ticket>` off `develop`; commit scaffolds; push.
-2. **Cursor**: code, commit, push to same branch; open PR to `develop`.
-3. **Codex**: review, request changes, squash‑merge.
-4. **CI bot**: must pass lint + tests before merge.
+  * ShipStation sends order webhook.
+  * Backend verifies webhook, parses product SKU & order details.
+  * Spreadsheet for correct SKU/channel updated instantly.
 
-*Fast fixes*: hotfix branches off `main`, reviewed by Codex.
+* **Insight generated by backend**:
 
----
+  * Product SKU `123-XYZ` hasn't sold in 60 days.
+  * Backend adds `123-XYZ` to "Slow movers" reallocation list.
 
-## 5. Secrets Handling
+* **Channel optionally acts (plug-and-play)**:
 
-* `.env` is git‑ignored.
-* `.env.example` is committed with placeholder keys.
+  * eBay channel reads from "slow movers" list.
+  * Automatically imports `123-XYZ` into its own inventory for new listing.
+  * Amazon optionally removes or pauses the slow-moving SKU via Amazon API.
 
 ---
 
-## 6. Updating This Document
+## 6. **What Makes this Clean & Simple:**
 
-* Any agent or human may propose edits via PR targeting `docs` label.
-* If a later instruction contradicts this file, human maintainer resolves.
-* Keep sections terse; remove deprecated rules instead of stacking exceptions.
+* **Single webhook source** → real-time updates (no complex polling).
+* **Clear division of responsibilities**:
 
----
+  * Core backend: universal data tracking, insights.
+  * Channels: optional plug-and-play automation.
+* **Flexible but simple inter-channel interactions**:
 
-## 7. Glossary
-
-* **PORF** – Purchase Order Request Form (Woot‑specific).
-* **PO** – Purchase Order.
-* **Connector / Service** – Concrete channel implementation of `BaseChannelOrderService`.
+  * Central lists (reallocation) allow cooperation without tight coupling.
+  * Channels can opt in/out of automation entirely independently.
 
 ---
 
-## 8. Google Workspace
+## 7. **Future Extensibility (Clear path forward):**
 
-- App owns one Drive folder per organisation (ensure_workspace)
-- All sheets created via core.services.drive/sheets
-- Sheets remain read-only until TWO_WAY_SYNC_ENABLED is True
+* Adding a new channel means just creating:
+
+  * Drive folder via backend.
+  * Optional custom actions for the channel.
+* No backend refactoring needed to support new channels.
+* Easily add powerful future automations incrementally.
 
 ---
 
-*Last updated: 2025-06-11
+## ✅ **Final Sanity Check (Why this works simply):**
+
+* **Clarity**: Clear separation (core vs. channel).
+* **Simplicity**: Minimal required components, simple real-time updates.
+* **Extensible**: Channels fully optional and independent.
+* **No forced complexity**: Channels choose when/how to add complexity.
