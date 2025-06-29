@@ -1,0 +1,7 @@
+python_version: "3.11"
+
+# Runs once at the start of every task (network ON).
+setup_script: "./codex_setup.sh"
+
+# Runs after setup (network OFF).  Keep it short.
+test_command: "pytest -q"
