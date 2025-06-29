@@ -4,7 +4,7 @@ Layer: api
 """
 from flask import Blueprint, request, jsonify, current_app
 from app.core.auth.service import AuthService
-from app import db
+from app.extensions import db
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 

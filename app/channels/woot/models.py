@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric, J
 from sqlalchemy.orm import relationship
 from typing import Dict, List, Optional, Any
 
-from app import db
+from app.extensions import db
 from app.channels.base import ChannelModel
 from app.core.models.base import BaseModel
 

@@ -6,7 +6,7 @@ Layer: api
 from flask import Blueprint, request, jsonify
 from app.core.models.product import MasterProduct, InventoryRecord
 from app.core.services.sheets import SheetsService
-from app import db
+from app.extensions import db
 
 bp = Blueprint('catalog', __name__, url_prefix='/api/catalog')
 

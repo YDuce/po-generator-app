@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from google.oauth2.credentials import Credentials
 
-from app import db
+from app.extensions import db
 from app.channels.woot.models import (
     WootPorf,
     WootPo,
@@ -21,9 +21,9 @@ from app.channels.woot.models import (
 )
 from app.channels.woot.service import WootService, WootOrderService
 from app.channels.woot.logic import ingest_porf
-from app.auth.service import AuthService
+from app.core.auth.service import AuthService
 from app.core.services.sheets import SheetsService
-from app.core.services.drive import DriveService
+from app.core.services import DriveService
 
 bp = Blueprint("woot", __name__, url_prefix="/api/woot")
 

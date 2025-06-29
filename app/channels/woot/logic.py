@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import csv
 import logging
-from io import BytesIO
 from typing import BinaryIO, Dict, List
 
-from app import db
-from app.core.services.drive import DriveService
+from app.core.services import DriveService
 from app.core.services.sheets import SheetsService
+from app.extensions import db
+
 from .models import WootPorf, WootPorfLine, WootPorfStatus
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ def ingest_porf(
     """Parse PORF spreadsheet, store rows and create a Sheets copy."""
     logger.debug("ingest_porf start")
 
-    reader = csv.DictReader(BytesIO(upload_file.read()).read().decode().splitlines())
+    reader = csv.DictReader(upload_file.read().decode().splitlines())
     porf = WootPorf(status=WootPorfStatus.DRAFT)
     db.session.add(porf)
     canonical_rows: List[List[str]] = []
@@ -50,6 +50,9 @@ def ingest_porf(
             ]
         )
     db.session.commit()
+    if not drive.is_enabled:
+        logger.info("Drive disabled; skipping upload")
+        return {"porf_id": str(porf.id), "sheet_url": ""}
 
     workspace = drive.ensure_workspace("default")
     dst_folder = drive.ensure_subfolder(workspace, "woot/porfs")
