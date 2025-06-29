@@ -16,6 +16,9 @@ class Settings(BaseSettings):
 
     shipstation_api_key: str
     shipstation_api_secret: str
+    shipstation_webhook_secret: str | None = Field(
+        None, alias="SHIPSTATION_WEBHOOK_SECRET"
+    )
 
     class Config:
         env_file = ".env"

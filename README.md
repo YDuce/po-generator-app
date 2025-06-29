@@ -80,6 +80,8 @@ app/
 - `PUT /api/woot/orders/<order_id>` - Update order
 - `GET /api/woot/orders/<order_id>/status` - Get order status
 - `POST /api/woot/export/sheets` - Export to Google Sheets
+- **ShipStation Webhook**: `/api/webhook/shipstation` (`X-ShipStation-Hmac-SHA256` header, returns `204` on success)
+- **Reallocation List**: managed via `ReallocationService`
 
 ## Contributing
 
@@ -90,4 +92,4 @@ app/
 
 ## License
 
-MIT 
+MIT

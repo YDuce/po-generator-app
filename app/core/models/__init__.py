@@ -6,16 +6,21 @@ from app.core.models.order import (
     PurchaseOrder,
     PurchaseOrderItem,
     PurchaseOrderRequest,
-    PurchaseOrderRequestItem
+    PurchaseOrderRequestItem,
 )
+from app.core.models.reallocation import ReallocationCandidate
+from app.core.models.order_record import OrderRecord, OrderLine
 
 __all__ = [
-    'Base',
-    'BaseModel',
-    'MasterProduct',
-    'InventoryRecord',
-    'PurchaseOrder',
-    'PurchaseOrderItem',
-    'PurchaseOrderRequest',
-    'PurchaseOrderRequestItem'
-] 
+    "Base",
+    "BaseModel",
+    "MasterProduct",
+    "InventoryRecord",
+    "PurchaseOrder",
+    "PurchaseOrderItem",
+    "PurchaseOrderRequest",
+    "PurchaseOrderRequestItem",
+    "ReallocationCandidate",
+    "OrderRecord",
+    "OrderLine",
+]
