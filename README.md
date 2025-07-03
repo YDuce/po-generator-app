@@ -1,133 +1,155 @@
-# PO Generator App
+# Architectural Blueprint: Channel-Driven Inventory Manager
 
-A Flask-based application for generating Purchase Orders (POs) with Google Drive integration and multi-channel support.
+## 1. Core Philosophy
 
-## Overview
+* **Architecture:** Explicitly clean, modular, and fully extensible.
+* **Data Layer:** Robust core service as the central data hub.
+* **Functional Plugins:** Channels independently select functionalities, explicitly opting into core insights.
+* **Single Source of Truth:** Driven solely by a single ShipStation webhook; structured, organized storage via Google Drive and Sheets.
+* **Separation of Concerns:** Explicit division between Core Service (data management) and Channel Plugins (functional actions).
+* **Extensibility Model:** Channels explicitly decide functionalities, eliminating forced complexity in the core.
 
-The PO Generator App streamlines the process of creating and managing Purchase Orders across multiple channels. It integrates with Google Drive for document storage and Google Sheets for PO templates, with a current focus on Woot channel integration.
+## 2. Explicit System Components & Responsibilities
 
-For detailed documentation, please refer to the [docs](./docs) directory:
-- [API Documentation](./docs/api.md)
-- [Authentication System](./docs/authentication.md)
-- [Database Models and Migrations](./docs/database.md)
-- [Improvement Plan](./docs/plan.md)
+### 2.1 Core Service Responsibilities
 
-## Project Structure
+* **Organization & File Management:**
+
+  * Explicitly creates structured Google Drive folders per channel (Amazon, eBay, Woot).
+  * Manages structured access and updates to user-uploaded spreadsheets.
+* **Webhook Processing:**
+
+  * Single ShipStation webhook endpoint explicitly validates authenticity.
+  * Parses order data (Order ID, SKU, quantities, timestamps, statuses).
+  * Real-time spreadsheet updates via Google Sheets API based on SKU matching.
+* **Data Tracking & Insights:**
+
+  * Tracks explicit metrics: product frequency, inventory turnover, listing age/status.
+  * Generates actionable insights: slow-moving, out-of-stock, aged listings.
+  * Structured insight lists for channels: "Slow movers", "Out-of-stock", "Reallocation candidates".
+* **Inter-Channel Communication:**
+
+  * Maintains central "reallocation" list explicitly.
+  * Channels independently choose actions (pull from or push to reallocation lists).
+
+### 2.2 Individual Channel Responsibilities (Plug-and-Play)
+
+* **Basic Channel Setup:**
+
+  * Folder creation and spreadsheet setup via core.
+  * Receives real-time spreadsheet updates from core.
+* **Optional Advanced Features:**
+
+  * Explicit automated actions: pause/delist products based on insights.
+  * Adjust pricing, generate reports (PORFs, listings).
+  * Independently manage reallocation (pull/push).
+
+### 2.3 Explicit Responsibility Matrix
+
+| Responsibility                   | Core Service | Channels     |
+| -------------------------------- | ------------ | ------------ |
+| Database Persistence             | ✅            | ❌            |
+| Google Sheets/Drive Management   | ✅            | ❌            |
+| Webhook Processing & Updates     | ✅            | ❌            |
+| Insights & Projections           | ✅            | ✅ (Consumes) |
+| Reacting to Insights             | ❌            | ✅ (Optional) |
+| External Marketplace API Calls   | ❌            | ✅ (Optional) |
+| Core Database/Sheet Modification | ✅            | ❌            |
+| Audit Logging (Core Actions)     | ✅            | ❌            |
+| Audit Logging (Channel Actions)  | ❌            | ✅ (Optional) |
+
+## 3. Detailed Workflow: Explicit Step-by-Step
+
+1. **Organisation Creation:** User creates organisation; core explicitly creates Drive folders per channel.
+2. **Spreadsheet Upload:** Core recognizes uploaded spreadsheets, explicitly structures metadata.
+3. **Webhook Processing:** ShipStation webhook received; core validates, parses, explicitly updates relevant Sheets.
+4. **Insight Generation:** Explicitly identifies products (e.g., no sales in 60 days), updates insights and reallocation lists.
+5. **Channel Reaction (Optional):** Channels explicitly read core insights, independently perform marketplace actions.
+
+## 4. Explicit Data Models & Schema
+
+* **Database:** SQLite (dev), PostgreSQL (prod).
+* **Datetime:** ISO-8601 explicitly timezone-aware.
+
+| Model        | Fields                                                                            | Constraints & Indices       |
+| ------------ | --------------------------------------------------------------------------------- | --------------------------- |
+| User         | id (PK), email (unique), organisation\_id (FK), allowed\_channels (JSON)          | Email unique, FK indexed    |
+| Organisation | id (PK), name, drive\_folder\_id                                                  | Drive folder unique         |
+| Product      | sku (PK), name, channel, quantity, status, listed\_date (datetime+TZ)             | SKU unique, indexed         |
+| OrderRecord  | order\_id (PK), channel, product\_sku (FK), quantity, ordered\_date (datetime+TZ) | Order ID unique, FK indexed |
+| Insights     | id (PK), product\_sku (FK), channel, status, generated\_date (datetime+TZ)        | FK indexed, status indexed  |
+| Reallocation | sku, channel\_origin, reason, added\_date (datetime+TZ)                           | Indexed on SKU              |
+
+## 5. Technical Specifications
+
+### 5.1 Webhook Authentication & Handling
+
+* Explicitly HMAC SHA256 signed; header: `X-ShipStation-Signature`.
+* Secrets explicitly managed and rotated quarterly.
+* Webhook idempotency and 5-minute replay window enforced.
+
+### 5.2 API & Authorization
+
+* RESTful API explicitly versioned (`/api/v1/...`).
+* Explicit JWT authentication (HS256, 24-hour expiry).
+* RBAC explicitly defined for organisational roles and channel permissions.
+
+### 5.3 Concurrency & Rate Limiting
+
+* Explicit Redis queue management for Google API concurrency.
+* Webhook throttling explicitly set to 100 events/sec.
+
+### 5.4 Error Handling
+
+* Explicit logging for 4xx and 5xx errors; retries and DLQ handling clearly defined.
+
+### 5.5 Insights Logic
+
+* Explicit thresholds: slow-moving ≥30 days, out-of-stock quantity=0, aging >180 days.
+* Insights explicitly reviewed/purged every 90 days.
+
+### 5.6 Logging & Observability
+
+* Explicit structured JSON logs with correlation IDs.
+* Explicit metrics: webhook latency, API call durations, errors logged.
+
+### 5.7 Security & Compliance
+
+* Explicit anonymized handling of PII.
+* Compliance-ready (SOC2/ISO 27001).
+
+## 6. Project File Structure
 
 ```
-app/
-├─ core/                 # Channel-agnostic domain code
-│   ├─ models/          # Base models
-│   ├─ interfaces.py    # Base interfaces
-│   ├─ services/        # Generic services (Drive, Sheets)
-│   └─ __init__.py
-│
-├─ channels/            # Channel-specific implementations
-│   ├─ base.py         # Base channel interface
-│   └─ woot/           # Woot channel implementation
-│       ├─ models.py   # Woot-specific models
-│       ├─ service.py  # Woot service implementation
-│       └─ routes.py   # Woot API routes
-│
-├─ config/             # Configuration
-├─ tests/              # Test suite
-└─ main.py            # Application factory
+inventory-manager-app/
+├── core/
+│   ├── models/ (user.py, organisation.py, product.py, order.py, insights.py)
+│   ├── services/ (drive.py, sheets.py, webhook.py, insights.py)
+│   ├── webhooks/ (shipstation.py)
+│   ├── utils/ (auth.py, validation.py)
+│   └── config/ (settings.py)
+├── channels/
+│   ├── amazon/ (actions.py, tasks.py, utils.py)
+│   ├── ebay/ (actions.py, tasks.py, utils.py)
+│   └── woot/ (actions.py, tasks.py, utils.py)
+├── api/
+│   ├── routes/ (auth.py, organisation.py, webhook.py)
+│   └── schemas/ (user_schema.py, order_schema.py)
+├── migrations/
+│   └── versions/
+├── tests/ (unit/, integration/, e2e/)
+├── logs/ (application.log)
+├── Dockerfile
+├── requirements.txt
+└── README.md
 ```
 
-## Prerequisites
+## 7. Explicit Implementation Roadmap
 
-- Python 3.11.8 (see `.python-version` for the exact version pin)
-- PostgreSQL database
-- Google Cloud Project with OAuth credentials
-
-## Quick Start
-
-### Windows
-1. Install Python 3.11.8 from [python.org](https://www.python.org/downloads/release/python-3118/)
-2. Run the setup script:
-   ```powershell
-   .\scripts\setup_test_env.ps1
-   ```
-
-### Unix/Mac
-1. Install Python 3.11.8 (e.g., `pyenv install 3.11.8`)
-2. Create a virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### Configuration
-
-1. Set up environment variables:
-   ```bash
-   cp .env .env
-   # Edit .env with your configuration
-   ```
-
-2. Initialize the database:
-   ```bash
-   flask db upgrade
-   ```
-
-## Development
-
-1. Run the development server:
-   ```bash
-   flask run
-   ```
-
-2. Run tests:
-   ```bash
-   pytest
-   ```
-
-3. Code quality tools:
-   ```bash
-   # Format code
-   black .
-
-   # Type checking
-   mypy .
-
-   # Linting
-   flake8
-
-   # Run pre-commit hooks
-   pre-commit run --all-files
-   ```
-
-## API Endpoints
-
-For a complete list of API endpoints and their documentation, see [API Documentation](./docs/api.md).
-
-### Key Endpoints
-
-- **Authentication**: `/api/auth/google`, `/api/auth/refresh`
-- **User Management**: `/api/auth/me`, `/api/auth/check`
-- **Organisation Management**: `/api/organisations/{id}`
-- **Purchase Order Management**: `/api/purchase-orders`
-- **Woot Channel**: `/api/woot/orders`, `/api/woot/export/sheets`
-
-## Branch Information
-
-This repository follows the Git workflow described in [AGENTS.md](./AGENTS.md). The current branch structure:
-
-- `main`: Production-ready code
-- `pycharm`: Development branch with latest features and improvements
-
-## Contributing
-
-1. Review the [AGENTS.md](./AGENTS.md) file for development conventions
-2. Create a feature branch following the naming convention `feat/<ticket>`
-3. Make your changes following the project's coding standards
-4. Run tests and linting to ensure code quality
-5. Submit a pull request to the appropriate branch
-
-## License
-
-MIT
+1. Finalize explicit schemas.
+2. Implement and validate webhook endpoint explicitly.
+3. Integrate explicit Google APIs via Redis.
+4. Document core APIs explicitly.
+5. Explicitly remove legacy complexities.
+6. Establish explicit Docker-based CI/CD.
+7. Implement explicit channel registration.
