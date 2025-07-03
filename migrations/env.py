@@ -37,10 +37,10 @@ def _merged_metadata() -> Iterable[DeclarativeMeta]:
     metas = [db.metadata]
 
     # Pull in BaseModel.metadata (DeclarativeBase)
-    from app.core.models.base import BaseModel  # local import avoids early app load
+    from inventory_manager_app.core.models.base import Base  # local import avoids early app load
 
-    if BaseModel.metadata is not db.metadata:  # keep unique
-        metas.append(BaseModel.metadata)
+    if Base.metadata is not db.metadata:  # keep unique
+        metas.append(Base.metadata)
 
     return metas
 
