@@ -1,18 +1,21 @@
+import os
+import pytest
+
+from inventory_manager_app.tests.utils import create_test_app
+
+
+pytestmark = pytest.mark.skipif(
+    "POSTGRES_URL" not in os.environ,
+    reason="Postgres not available",
+)
 
 
 def test_login_flow(tmp_path, monkeypatch):
-    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
-    from inventory_manager_app.core.config.settings import settings
-    from inventory_manager_app import create_app, db
+    from inventory_manager_app import db
     from inventory_manager_app.core.models import User
-    from inventory_manager_app.tests.utils import migrate_database
     from inventory_manager_app.core.utils.auth import hash_password
 
-    monkeypatch.setattr(
-        settings, "database_url", f"sqlite:///{str(tmp_path/'test.db')}"
-    )
-    app = create_app()
-    migrate_database(app)
+    app = create_test_app(tmp_path, monkeypatch)
     with app.app_context():
         user = User(
             email="test@example.com",
@@ -30,18 +33,11 @@ def test_login_flow(tmp_path, monkeypatch):
 
 
 def test_auth_decorator(tmp_path, monkeypatch):
-    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
-    from inventory_manager_app.core.config.settings import settings
-    from inventory_manager_app import create_app, db
+    from inventory_manager_app import db
     from inventory_manager_app.core.models import User
-    from inventory_manager_app.tests.utils import migrate_database
     from inventory_manager_app.core.utils.auth import hash_password
 
-    monkeypatch.setattr(
-        settings, "database_url", f"sqlite:///{str(tmp_path/'test.db')}"
-    )
-    app = create_app()
-    migrate_database(app)
+    app = create_test_app(tmp_path, monkeypatch)
     with app.app_context():
         user = User(
             email="user@example.com",

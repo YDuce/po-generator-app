@@ -1,17 +1,21 @@
+import os
+import pytest
+
+from inventory_manager_app.tests.utils import create_test_app, create_token_for
+
+
+pytestmark = pytest.mark.skipif(
+    "POSTGRES_URL" not in os.environ,
+    reason="Postgres not available",
+)
 
 
 def test_create_and_list_reallocation(tmp_path, monkeypatch):
     monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
-    from inventory_manager_app import create_app, db
-    from inventory_manager_app.core.config.settings import settings
-    from inventory_manager_app.tests.utils import migrate_database, create_token_for
+    from inventory_manager_app import db
     from inventory_manager_app.core.models import Product
 
-    monkeypatch.setattr(
-        settings, "database_url", f"sqlite:///{str(tmp_path / 'test.db')}"
-    )
-    app = create_app()
-    migrate_database(app)
+    app = create_test_app(tmp_path, monkeypatch)
     with app.app_context():
         prod = Product(
             sku="XYZ",
