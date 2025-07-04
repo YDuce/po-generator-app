@@ -1,5 +1,13 @@
-"""Channel-specific actions."""
+"""Amazon channel action stubs that log received events."""
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def placeholder_action() -> None:
-    pass
+class AmazonActions:
+    """Example action implementations for Amazon channel."""
+
+    @staticmethod
+    def log_event(event: dict) -> None:
+        logger.info("Amazon event: %s", event)

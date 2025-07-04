@@ -1,19 +1,23 @@
 from datetime import datetime, timedelta
 
+import os
+import pytest
+
+from inventory_manager_app.tests.utils import create_test_app
+
+
+pytestmark = pytest.mark.skipif(
+    "POSTGRES_URL" not in os.environ,
+    reason="Postgres not available",
+)
+
 
 def test_generate_insights_creates_reallocation(tmp_path, monkeypatch):
-    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
-    from inventory_manager_app.core.config.settings import settings
-    from inventory_manager_app import create_app, db
+    from inventory_manager_app import db
     from inventory_manager_app.core.models import Product
-    from inventory_manager_app.tests.utils import migrate_database
     from inventory_manager_app.core.services.insights import InsightsService
 
-    monkeypatch.setattr(
-        settings, "database_url", f"sqlite:///{str(tmp_path / 'test.db')}"
-    )
-    app = create_app()
-    migrate_database(app)
+    app = create_test_app(tmp_path, monkeypatch)
     with app.app_context():
         prod = Product(
             sku="ABC",
@@ -33,3 +37,24 @@ def test_generate_insights_creates_reallocation(tmp_path, monkeypatch):
             sku="ABC", channel_origin="amazon"
         ).first()
         assert realloc is not None
+
+
+def test_generate_insights_slow_mover(tmp_path, monkeypatch):
+    from inventory_manager_app import db
+    from inventory_manager_app.core.models import Product
+    from inventory_manager_app.core.services.insights import InsightsService
+
+    app = create_test_app(tmp_path, monkeypatch)
+    with app.app_context():
+        prod = Product(
+            sku="SLOW",
+            name="Slow Prod",
+            channel="woot",
+            quantity=5,
+            listed_date=datetime.utcnow() - timedelta(days=40),
+        )
+        db.session.add(prod)
+        db.session.commit()
+        service = InsightsService(db.session)
+        insights = service.generate(threshold_days=30)
+        assert any(i.product_sku == "SLOW" for i in insights)

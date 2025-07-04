@@ -4,11 +4,15 @@ from flask import Flask
 from flask_migrate import Migrate
 
 from .extensions import db
-
 from .core.config.settings import settings
-from .api.routes import auth_bp, organisation_bp, webhook_routes, reallocation_bp
+from .api.routes import (
+    auth_bp,
+    organisation_bp,
+    webhook_routes,
+    reallocation_bp,
+    health_bp,
+)
 from .channels import load_channels
-
 
 migrate = Migrate()
 
@@ -29,8 +33,9 @@ def create_app() -> Flask:
     for bp in webhook_routes:
         app.register_blueprint(bp)
 
-    @app.route("/health")
-    def root_health() -> tuple[dict, int]:
-        return {"status": "ok"}, 200
+    app.register_blueprint(health_bp)
 
     return app
+
+
+__all__ = ["create_app", "db"]

@@ -1,26 +1,27 @@
 import os
 
 from flask_migrate import upgrade
-from sqlalchemy import text
-from sqlalchemy.engine.url import make_url
 
 
 def migrate_database(app) -> None:
     """Apply all Alembic migrations for the given app."""
     with app.app_context():
-        from inventory_manager_app import db
-        url = make_url(app.config["SQLALCHEMY_DATABASE_URI"])
-        if (
-            url.drivername.startswith("sqlite")
-            and url.database
-            and os.path.exists(url.database)
-        ):
-            db.session.remove()
-            db.engine.dispose()
-            os.remove(url.database)
-        # ensure foreign key constraints on SQLite
-        db.session.execute(text("PRAGMA foreign_keys=ON"))
         upgrade()
+
+
+def create_test_app(tmp_path, monkeypatch):
+    """Create app using POSTGRES_URL for the database."""
+    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
+    from inventory_manager_app import create_app
+    from inventory_manager_app.core.config.settings import settings
+
+    db_url = os.environ.get("POSTGRES_URL")
+    if not db_url:
+        raise RuntimeError("POSTGRES_URL not set")
+    monkeypatch.setattr(settings, "database_url", db_url)
+    app = create_app()
+    migrate_database(app)
+    return app
 
 
 def create_token_for(app, email="admin@example.com") -> str:
