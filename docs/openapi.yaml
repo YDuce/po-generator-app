@@ -1,0 +1,87 @@
+openapi: 3.0.0
+info:
+  title: Inventory Manager API
+  version: '1.0'
+  description: Central API for inventory insights and reallocation tracking
+  contact:
+    name: Support
+    email: support@example.com
+servers:
+  - url: http://localhost:5000/api/v1
+paths:
+  /api/v1/reallocations:
+    get:
+      summary: List reallocations
+      security:
+        - bearerAuth: []
+      tags: [Reallocation]
+      responses:
+        '200':
+          description: List of reallocations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reallocation'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+    post:
+      summary: Create reallocation
+      security:
+        - bearerAuth: []
+      tags: [Reallocation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sku:
+                  type: string
+                channel_origin:
+                  type: string
+                reason:
+                  type: string
+              required: [sku, channel_origin, reason]
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reallocation'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '409':
+          description: Conflict
+        '413':
+          description: Payload too large
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Reallocation:
+      type: object
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        channel_origin:
+          type: string
+        reason:
+          type: string
+        added_date:
+          type: string
+          format: date-time
