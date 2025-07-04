@@ -6,6 +6,7 @@ Changes from the stock template:
 • target_metadata now merges db.Model.metadata *and* BaseModel.metadata
 • keeps process_revision_directives guard to suppress empty revs
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,6 +21,7 @@ from sqlalchemy.orm import DeclarativeMeta
 config = context.config
 fileConfig(config.config_file_name)
 logger = logging.getLogger("alembic.env")
+
 
 # ----------------------------------------------------------------- helpers
 def _get_engine():
@@ -37,7 +39,9 @@ def _merged_metadata() -> Iterable[DeclarativeMeta]:
     metas = [db.metadata]
 
     # Pull in BaseModel.metadata (DeclarativeBase)
-    from inventory_manager_app.core.models.base import Base  # local import avoids early app load
+    from inventory_manager_app.core.models.base import (
+        Base,
+    )  # local import avoids early app load
 
     if Base.metadata is not db.metadata:  # keep unique
         metas.append(Base.metadata)

@@ -1,5 +1,6 @@
 from typing import Any, Iterable, Mapping, Optional
 
+
 class Credentials:
     @classmethod
     def from_service_account_info(

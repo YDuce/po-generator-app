@@ -17,8 +17,4 @@ class DriveService:
         metadata = {"name": name, "mimeType": "application/vnd.google-apps.folder"}
         if parent_id:
             metadata["parents"] = [parent_id]
-        return (
-            self.client.files()
-            .create(body=metadata, fields="id")
-            .execute()
-        )
+        return self.client.files().create(body=metadata, fields="id").execute()

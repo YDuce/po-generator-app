@@ -8,6 +8,7 @@ from inventory_manager_app.extensions import db
 
 class Base(db.Model):
     """Base model with automatic table name and integer primary key."""
+
     __abstract__ = True
 
     @declared_attr.directive

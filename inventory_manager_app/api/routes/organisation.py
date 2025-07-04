@@ -2,9 +2,11 @@
 
 from flask import Blueprint, jsonify
 
-bp = Blueprint('organisation', __name__)
+from inventory_manager_app.core.config.settings import settings
+
+bp = Blueprint("organisation", __name__, url_prefix=settings.api_prefix)
 
 
-@bp.route('/api/v1/health')
+@bp.route("/health")
 def health() -> tuple[dict, int]:
-    return jsonify({'status': 'ok'}), 200
+    return jsonify({"status": "ok"}), 200

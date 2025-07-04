@@ -1,3 +1,4 @@
 [flake8]
+max-line-length = 88
+extend-ignore = W291,W292,W293,E302
 exclude = alembic/versions/*
-ignore = W291,W292,W293,E302,E501,F401 
