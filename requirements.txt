@@ -1,0 +1,55 @@
+# requirements.txt contents:
+
+# Core Flask
+Flask==3.0.2
+Werkzeug>=3.0,<3.1
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-CORS==6.0.0
+Flask-Migrate==4.0.5
+Flask-Dance==7.0.0
+
+# Database / migrations
+SQLAlchemy==2.0.27
+alembic==1.13.1
+# psycopg2-binary==2.9.9   # enable for Postgres deployments
+
+# Auth & security
+PyJWT==2.8.0
+python-dotenv==1.0.1
+# cryptography==44.0.1     # optional – only if you need it
+
+# Google APIs (service-account + optional per-user OAuth)
+oauthlib>=3.2.0
+google-auth==2.27.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.114.0
+google-auth-oauthlib==1.2.0   # keep only if you’ll use per-user tokens
+requests-oauthlib>=0.6.2,<1.2.0
+
+# Runtime / HTTP
+requests==2.32.4
+gunicorn==23.0.0
+tenacity==8.2.3
+python-dateutil==2.9.0
+pytz==2023.3
+protobuf==6.31.1
+pydantic==2.11.5
+
+# Dev / lint / type check / tests
+black==24.3.0
+flake8==6.1.0
+mypy==1.5.1
+pytest==7.4.2
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+types-requests==2.31.0.10
+types-PyJWT==1.7.1
+# types-openpyxl==3.1.5.20250602   # comment out if not using openpyxl
+pydantic-settings==2.9.1
+oauth~=1.0.1
+httpx~=0.28.1
+celery~=5.5.3
+structlog~=25.4.0
+channels~=4.2.2
+SQLAlchemy-Utils~=0.41.2
