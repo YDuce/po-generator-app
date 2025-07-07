@@ -11,7 +11,6 @@ def configure_logging() -> None:
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
     )
-    logging.basicConfig(level=logging.INFO)
 
 
 __all__ = ["configure_logging"]

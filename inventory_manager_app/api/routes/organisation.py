@@ -5,7 +5,6 @@ from sqlalchemy.exc import IntegrityError
 import structlog
 
 from inventory_manager_app.core.utils.auth import require_auth
-from inventory_manager_app.core.config.settings import settings
 from inventory_manager_app.core.utils.validation import (
     require_fields,
     validate_drive_folder_id,
@@ -15,7 +14,7 @@ from inventory_manager_app.extensions import db
 
 logger = structlog.get_logger(__name__)
 
-organisation_bp = Blueprint("organisation", __name__, url_prefix=settings.api_prefix)
+organisation_bp = Blueprint("organisation", __name__, url_prefix="/api/v1")
 
 
 @organisation_bp.route("/organisations", methods=["POST"])
@@ -23,7 +22,10 @@ organisation_bp = Blueprint("organisation", __name__, url_prefix=settings.api_pr
 def create_org() -> tuple[Response, int]:
     payload = request.get_json() or {}
     require_fields(payload, ["name", "drive_folder_id"], {"name": 255})
-    validate_drive_folder_id(str(payload["drive_folder_id"]))
+    try:
+        validate_drive_folder_id(str(payload["drive_folder_id"]))
+    except ValueError as exc:
+        abort(400, description=str(exc))
     org = Organisation(name=payload["name"], drive_folder_id=payload["drive_folder_id"])
     db.session.add(org)
     try:

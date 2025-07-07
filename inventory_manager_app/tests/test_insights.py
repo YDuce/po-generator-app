@@ -1,15 +1,6 @@
 from datetime import datetime, timedelta
 
-import os
-import pytest
-
 from inventory_manager_app.tests.utils import create_test_app
-
-
-pytestmark = pytest.mark.skipif(
-    "POSTGRES_URL" not in os.environ,
-    reason="Postgres not available",
-)
 
 
 def test_generate_insights_creates_reallocation(tmp_path, monkeypatch):
@@ -37,6 +28,7 @@ def test_generate_insights_creates_reallocation(tmp_path, monkeypatch):
             sku="ABC", channel_origin="amazon"
         ).first()
         assert realloc is not None
+    app.teardown_db()
 
 
 def test_generate_insights_slow_mover(tmp_path, monkeypatch):
@@ -58,3 +50,4 @@ def test_generate_insights_slow_mover(tmp_path, monkeypatch):
         service = InsightsService(db.session)
         insights = service.generate(threshold_days=30)
         assert any(i.product_sku == "SLOW" for i in insights)
+    app.teardown_db()

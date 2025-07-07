@@ -3,6 +3,8 @@
 import re
 from flask import abort
 
+_SAFE = re.compile(r"^[A-Za-z0-9._-]+$")
+
 __all__ = ["require_fields", "validate_drive_folder_id"]
 
 
@@ -20,8 +22,8 @@ def require_fields(
                 abort(400, description=f"{key} too long (max {max_len})")
 
 
-def validate_drive_folder_id(value: str, max_len: int = 256) -> str:
-    """Validate Google Drive folder ID value."""
-    if len(value) > max_len or not re.fullmatch(r"[A-Za-z0-9._-]+", value):
-        abort(400, description="Invalid drive_folder_id")
-    return value
+def validate_drive_folder_id(folder_id: str) -> str:
+    """Return the folder id if it matches allowed characters else raise."""
+    if not _SAFE.fullmatch(folder_id):
+        raise ValueError(f"Invalid Drive folder id: {folder_id!r}")
+    return folder_id

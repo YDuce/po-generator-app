@@ -14,12 +14,19 @@ from logging.config import fileConfig
 from typing import Iterable
 
 from alembic import context
-from flask import current_app
+from flask import current_app, has_app_context
+from inventory_manager_app import create_app
 from sqlalchemy.orm import DeclarativeMeta
 
 # -------------------------------------------------------------------- setup
 config = context.config
-fileConfig(config.config_file_name)
+if not has_app_context():
+    create_app().app_context().push()
+try:
+    fileConfig(config.config_file_name)
+except (OSError, KeyError) as exc:  # log missing config sections
+    logging.error("Logging config failed: %s", exc)
+    raise
 logger = logging.getLogger("alembic.env")
 
 

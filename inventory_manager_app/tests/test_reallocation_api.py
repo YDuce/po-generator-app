@@ -1,13 +1,4 @@
-import os
-import pytest
-
 from inventory_manager_app.tests.utils import create_test_app, create_token_for
-
-
-pytestmark = pytest.mark.skipif(
-    "POSTGRES_URL" not in os.environ,
-    reason="Postgres not available",
-)
 
 
 def test_create_and_list_reallocation(tmp_path, monkeypatch):
@@ -40,3 +31,4 @@ def test_create_and_list_reallocation(tmp_path, monkeypatch):
         assert resp.status_code == 200
         items = resp.get_json()
         assert any(r["sku"] == "XYZ" for r in items)
+    app.teardown_db()

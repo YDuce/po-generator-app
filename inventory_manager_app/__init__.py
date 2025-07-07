@@ -1,10 +1,12 @@
 """Flask application factory."""
 
 from flask import Flask
+
+from .logging import configure_logging
 from flask_migrate import Migrate
 
 from .extensions import db
-from .core.config.settings import settings
+from .core.config.settings import get_settings
 from .api.routes import (
     auth_bp,
     organisation_bp,
@@ -18,7 +20,9 @@ migrate = Migrate()
 
 
 def create_app() -> Flask:
+    configure_logging()
     app = Flask(__name__)
+    settings = get_settings()
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.database_url
     app.config["SECRET_KEY"] = settings.secret_key
     db.init_app(app)

@@ -2,16 +2,7 @@
 
 from __future__ import annotations
 
-import os
-import pytest
-
 from inventory_manager_app.tests.utils import create_test_app, create_token_for
-
-
-pytestmark = pytest.mark.skipif(
-    "POSTGRES_URL" not in os.environ,
-    reason="Postgres not available",
-)
 
 
 def test_create_and_list_org(tmp_path, monkeypatch):
@@ -32,19 +23,23 @@ def test_create_and_list_org(tmp_path, monkeypatch):
         assert resp.status_code == 200
         data = resp.get_json()
         assert any(o["id"] == org_id for o in data)
+    app.teardown_db()
 
 
 def test_org_auth_required(tmp_path, monkeypatch):
     from inventory_manager_app import db
     from inventory_manager_app.core.models import User
     from inventory_manager_app.core.utils.auth import hash_password, create_token
-    from inventory_manager_app.core.config.settings import settings
+    from inventory_manager_app.core.config.settings import get_settings
 
     app = create_test_app(tmp_path, monkeypatch)
     with app.test_client() as client:
         assert client.get("/api/v1/organisations").status_code == 401
 
     with app.app_context():
+        from inventory_manager_app.core.models import Organisation
+
+        db.session.add(Organisation(name="Org", drive_folder_id="1"))
         user = User(
             email="user@example.com",
             organisation_id=1,
@@ -53,11 +48,12 @@ def test_org_auth_required(tmp_path, monkeypatch):
         )
         db.session.add(user)
         db.session.commit()
-        token = create_token({"sub": user.id}, settings.secret_key)
+        token = create_token({"sub": user.id}, get_settings().secret_key)
 
     headers = {"Authorization": f"Bearer {token}"}
     with app.test_client() as client:
         assert client.get("/api/v1/organisations", headers=headers).status_code == 403
+    app.teardown_db()
 
 
 def test_org_duplicate(tmp_path, monkeypatch):
@@ -79,3 +75,4 @@ def test_org_duplicate(tmp_path, monkeypatch):
             headers=headers,
         )
         assert resp.status_code == 409
+    app.teardown_db()
