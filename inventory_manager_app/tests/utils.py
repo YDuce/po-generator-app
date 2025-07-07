@@ -13,6 +13,7 @@ from sqlalchemy.engine.url import make_url
 def create_test_app(tmp_path, monkeypatch):
     """Create app using a temporary database."""
     monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("APP_WEBHOOK_SECRETS", "secret")
     base = os.environ.get("APP_DATABASE_URL", f"sqlite:///{tmp_path}/app.db")
     url = make_url(base)
 

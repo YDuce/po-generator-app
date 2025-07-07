@@ -1,6 +1,6 @@
 """Organisation routes."""
 
-from flask import Blueprint, jsonify, request, abort, url_for, Response
+from flask import Blueprint, jsonify, request, url_for, Response
 from sqlalchemy.exc import IntegrityError
 import structlog
 
@@ -8,9 +8,15 @@ from inventory_manager_app.core.utils.auth import require_auth
 from inventory_manager_app.core.utils.validation import (
     require_fields,
     validate_drive_folder_id,
+    abort_json,
 )
-from inventory_manager_app.core.models import Organisation
+from inventory_manager_app.core.models import Organisation, ChannelSheet
+from inventory_manager_app.channels.registry import CHANNELS
 from inventory_manager_app.extensions import db
+from inventory_manager_app.core.services import DriveService, SheetsService
+from inventory_manager_app.core.config.settings import get_settings
+from google.oauth2.service_account import Credentials
+import redis
 
 logger = structlog.get_logger(__name__)
 
@@ -25,14 +31,33 @@ def create_org() -> tuple[Response, int]:
     try:
         validate_drive_folder_id(str(payload["drive_folder_id"]))
     except ValueError as exc:
-        abort(400, description=str(exc))
+        abort_json(400, str(exc))
     org = Organisation(name=payload["name"], drive_folder_id=payload["drive_folder_id"])
     db.session.add(org)
     try:
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
-        abort(409, description="Organisation exists")
+        abort_json(409, "Organisation exists")
+
+    settings = get_settings()
+    creds = Credentials.from_service_account_file(settings.service_account_file)
+    client = redis.Redis.from_url(settings.redis_url)
+    drive = DriveService(creds, client)
+    sheets = SheetsService(creds, client)
+
+    for channel in CHANNELS:
+        folder = drive.create_folder(channel, parent_id=org.drive_folder_id)
+        sheet = sheets.create_spreadsheet(f"{channel}-orders")
+        db.session.add(
+            ChannelSheet(
+                organisation_id=org.id,
+                channel=channel,
+                folder_id=folder["id"],
+                spreadsheet_id=sheet["spreadsheetId"],
+            )
+        )
+    db.session.commit()
     response = jsonify(
         {"id": org.id, "name": org.name, "drive_folder_id": org.drive_folder_id}
     )

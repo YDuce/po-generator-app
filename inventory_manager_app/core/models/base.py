@@ -6,13 +6,13 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from inventory_manager_app.extensions import db
 
 
-class Base(db.Model):
+class Base(db.Model):  # type: ignore[misc]
     """Base model with automatic table name and integer primary key."""
 
     __abstract__ = True
 
-    @declared_attr.directive
+    @declared_attr.directive  # type: ignore[misc]
     def __tablename__(cls) -> str:
-        return cls.__name__.lower()
+        return str(cls.__name__.lower())
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

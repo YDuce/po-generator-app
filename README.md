@@ -161,3 +161,14 @@ inventory-manager-app/
 5. Explicitly remove legacy complexities.
 6. Establish explicit Docker-based CI/CD.
 7. Implement explicit channel registration.
+
+## 8. CI Pipeline
+
+The CI job runs the following checks:
+
+```bash
+scripts/ci.sh
+```
+
+This script performs an Alembic upgrade/downgrade, linting with ruff and flake8,
+mypy type checking in strict mode, and runs the pytest suite with coverage.

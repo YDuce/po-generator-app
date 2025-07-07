@@ -1,8 +1,8 @@
-# PO Generator App Requirements
+# Inventory Manager App Requirements
 
 ## Overview
 
-This document outlines the key requirements and constraints for the PO Generator App. It serves as a reference for developers and stakeholders to understand the project's goals, functional requirements, and technical constraints.
+This document outlines the key requirements and constraints for the Inventory Manager App. It serves as a reference for developers and stakeholders to understand the project's goals, functional requirements, and technical constraints.
 
 ## 1. Functional Requirements
 
@@ -57,6 +57,7 @@ This document outlines the key requirements and constraints for the PO Generator
 - **Input Validation**: All user inputs must be validated to prevent injection attacks
 - **HTTPS**: All communications must use HTTPS
 - **Rate Limiting**: Implement rate limiting to prevent abuse
+- **Redis**: Used for rate limiting and Google API-call locks
 
 ### 2.3 Reliability
 

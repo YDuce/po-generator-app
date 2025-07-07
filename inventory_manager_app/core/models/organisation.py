@@ -11,7 +11,7 @@ from .base import Base
 
 
 class Organisation(Base):
-    __tablename__ = "organisation"
+    __tablename__ = "organisation"  # type: ignore[assignment]
 
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     drive_folder_id: Mapped[str] = mapped_column(

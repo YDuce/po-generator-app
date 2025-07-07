@@ -1,6 +1,8 @@
 """Flask application factory."""
 
 from flask import Flask
+from flask_cors import CORS
+from flask_talisman import Talisman
 
 from .logging import configure_logging
 from flask_migrate import Migrate
@@ -23,6 +25,8 @@ def create_app() -> Flask:
     configure_logging()
     app = Flask(__name__)
     settings = get_settings()
+    CORS(app)
+    Talisman(app, content_security_policy=None, force_https=False)
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.database_url
     app.config["SECRET_KEY"] = settings.secret_key
     db.init_app(app)

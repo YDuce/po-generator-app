@@ -1,6 +1,6 @@
 """Insights generation logic."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import insert
@@ -17,7 +17,7 @@ class InsightsService:
         self.db = db
 
     def generate(self, threshold_days: int = 30) -> list[Insight]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=threshold_days)
         insights: list[Insight] = []
         products = self.db.query(Product).order_by(Product.id).yield_per(100)
@@ -25,8 +25,12 @@ class InsightsService:
             status = None
             if product.quantity == 0:
                 status = "out-of-stock"
-            elif product.listed_date < cutoff:
-                status = "slow-mover"
+            else:
+                listed = product.listed_date
+                if listed.tzinfo is None:
+                    listed = listed.replace(tzinfo=timezone.utc)
+                if listed < cutoff:
+                    status = "slow-mover"
             if status:
                 insight = Insight(
                     product_sku=product.sku,

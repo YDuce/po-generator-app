@@ -99,6 +99,12 @@ def upgrade() -> None:
             "sku", "channel_origin", "reason", name="uq_reallocation_sku_chan_reason"
         ),
     )
+    op.create_table(
+        "channel_sheet",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("channel", sa.String(length=50), nullable=False, unique=True),
+        sa.Column("spreadsheet_id", sa.String(length=128), nullable=False),
+    )
 
 
 def downgrade() -> None:
@@ -107,4 +113,5 @@ def downgrade() -> None:
     op.drop_table("user")
     op.drop_table("organisation")
     op.drop_table("reallocation")
+    op.drop_table("channel_sheet")
     op.drop_table("product")

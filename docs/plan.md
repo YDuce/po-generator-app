@@ -1,8 +1,8 @@
-# Improvement Plan for PO Generator App
+# Improvement Plan for Inventory Manager App
 
 ## Introduction
 
-This document outlines a comprehensive improvement plan for the PO Generator App based on an analysis of the current codebase, documentation, and project structure. The plan is organized by themes and areas of the system, with each section providing rationale for proposed changes.
+This document outlines a comprehensive improvement plan for the Inventory Manager App based on an analysis of the current codebase, documentation, and project structure. The plan is organized by themes and areas of the system, with each section providing rationale for proposed changes.
 
 ## 1. Documentation Improvements
 
@@ -63,6 +63,7 @@ This document outlines a comprehensive improvement plan for the PO Generator App
 - Create comprehensive test suite for channel implementations
 - Document channel integration requirements
 - Implement channel feature parity tracking
+- Store per-organisation channel metadata in `ChannelSheet` for multi-tenant isolation
 
 #### 2.3 Improve Error Handling
 **Rationale:** Consistent error handling improves user experience and simplifies debugging.
@@ -71,6 +72,7 @@ This document outlines a comprehensive improvement plan for the PO Generator App
 - Standardize error response format across all endpoints
 - Add detailed logging for errors
 - Create error code documentation
+- Return JSON-formatted errors via `abort_json` for all endpoints
 
 ## 3. Testing and Quality Assurance
 
@@ -138,6 +140,8 @@ This document outlines a comprehensive improvement plan for the PO Generator App
 - Implement secure secrets rotation
 - Document secrets management procedures
 - Add checks for hardcoded secrets
+- Validate service account path at startup
+- Use Redis locks to serialize Google API calls
 
 ## 5. Performance Optimization
 
@@ -216,6 +220,7 @@ This document outlines a comprehensive improvement plan for the PO Generator App
 **Rationale:** Robust CI/CD pipelines improve development velocity and code quality.
 
 - Enhance CI pipeline with additional checks
+- Run `alembic upgrade && alembic downgrade`, `mypy --strict`, `pytest --cov`, and `flake8` in CI
 - Implement automated deployment pipeline
 - Add deployment verification tests
 - Document CI/CD workflow
@@ -238,6 +243,6 @@ This document outlines a comprehensive improvement plan for the PO Generator App
 
 ## Conclusion
 
-This improvement plan provides a roadmap for enhancing the PO Generator App across multiple dimensions. By addressing documentation, architecture, testing, security, performance, user experience, deployment, and version control, the project will become more maintainable, secure, and user-friendly.
+This improvement plan provides a roadmap for enhancing the Inventory Manager App across multiple dimensions. By addressing documentation, architecture, testing, security, performance, user experience, deployment, and version control, the project will become more maintainable, secure, and user-friendly.
 
 Implementation of these improvements should be prioritized based on project goals and resource availability, with a focus on addressing critical issues first.

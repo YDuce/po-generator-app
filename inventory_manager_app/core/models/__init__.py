@@ -4,6 +4,7 @@ from .product import Product
 from .order import OrderRecord
 from .insights import Insight
 from .reallocation import Reallocation
+from .channel_sheet import ChannelSheet
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "OrderRecord",
     "Insight",
     "Reallocation",
+    "ChannelSheet",
 ]

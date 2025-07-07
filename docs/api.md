@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PO Generator App provides a RESTful API for managing purchase orders, users, and organizations. This document describes the available endpoints, their request/response formats, and authentication requirements.
+The Inventory Manager App provides a RESTful API for managing purchase orders, users, and organizations. This document describes the available endpoints, their request/response formats, and authentication requirements.
 
 ## Authentication
 
@@ -415,6 +415,21 @@ Response: 201 Created
     },
     "timestamp": "2024-03-21T12:00:00Z"
 }
+```
+
+### ShipStation Webhook
+
+```http
+POST /api/v1/webhook/shipstation
+Content-Type: application/json
+X-ShipStation-Signature: <HMAC>
+
+Response Codes:
+- 204 Accepted
+- 400 Invalid signature, payload, or unknown channel → {"error": "..."}
+- 413 Payload too large → {"error": "Payload too large"}
+- 429 Too many requests → {"error": "Too many requests"}
+- 500 Server error
 ```
 
 ## Testing

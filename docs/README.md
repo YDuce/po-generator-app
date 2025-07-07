@@ -1,10 +1,10 @@
-# PO Generator App
+# Inventory Manager App
 
-A Flask-based application for generating Purchase Orders (POs) with Google Drive integration.
+A Flask-based application for managing inventory across sales channels with Google Drive integration.
 
 ## Overview
 
-The PO Generator App is designed to streamline the process of creating and managing Purchase Orders. It integrates with Google Drive for document storage and Google Sheets for PO templates.
+The Inventory Manager App streamlines inventory updates and order tracking. It integrates with Google Drive for document storage and Google Sheets for channel order sheets.
 
 ### Key Features
 
@@ -67,8 +67,8 @@ app/
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/po-generator-app.git
-   cd po-generator-app
+   git clone https://github.com/yourusername/inventory-manager-app.git
+   cd inventory-manager-app
    ```
 
 2. Create and activate virtual environment:
@@ -106,6 +106,10 @@ SECRET_KEY=your-secret-key
 
 # Database
 DATABASE_URL=sqlite:///instance/dev.db
+
+# Inventory Manager
+APP_SERVICE_ACCOUNT_FILE=secrets/service-account.json
+APP_WEBHOOK_SECRETS_FILE=secrets/webhook-secrets.txt
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-client-id
