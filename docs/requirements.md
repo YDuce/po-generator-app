@@ -86,7 +86,7 @@ This document outlines the key requirements and constraints for the Inventory Ma
 ### 3.1 Technology Stack
 
 - **Backend**: Python 3.11+, Flask
-- **Database**: PostgreSQL
+- **Database**: SQLite
 - **ORM**: SQLAlchemy with Alembic for migrations
 - **Authentication**: Google OAuth, JWT
 - **Frontend**: Not specified in current documentation

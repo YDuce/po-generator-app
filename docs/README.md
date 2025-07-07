@@ -48,7 +48,7 @@ app/
 2. **Database**
    - SQLAlchemy ORM
    - Alembic migrations
-   - PostgreSQL support
+   - SQLite database (MVP)
 
 3. **Google Integration**
    - Drive API for document storage
@@ -60,7 +60,6 @@ app/
 ### Prerequisites
 
 - Python 3.8+
-- PostgreSQL
 - Google Cloud Project with OAuth credentials
 
 ### Installation

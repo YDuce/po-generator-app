@@ -1,6 +1,9 @@
 """Flask application factory."""
 
-from flask import Flask
+from uuid import uuid4
+
+import structlog
+from flask import Flask, request
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_talisman import Talisman
@@ -24,6 +27,15 @@ def create_app() -> Flask:
     app.config["SECRET_KEY"] = settings.secret_key
     db.init_app(app)
     migrate.init_app(app, db)
+
+    @app.before_request
+    def _bind_request_id() -> None:
+        req_id = request.headers.get("X-Request-ID", str(uuid4()))
+        structlog.contextvars.bind_contextvars(request_id=req_id)
+
+    @app.teardown_request
+    def _clear_request_id(_: object) -> None:
+        structlog.contextvars.clear_contextvars()
 
     # Load channel plug-ins
     app.extensions["channels"] = load_channels()

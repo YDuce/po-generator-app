@@ -10,6 +10,9 @@ def create_test_app(tmp_path, monkeypatch):
     monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
     monkeypatch.setenv("APP_WEBHOOK_SECRETS", "secret")
     monkeypatch.setenv("APP_DATABASE_URL", "sqlite:///:memory:")
+    sa_file = tmp_path / "sa.json"
+    sa_file.write_text("{}")
+    monkeypatch.setenv("APP_SERVICE_ACCOUNT_FILE", str(sa_file))
     from inventory_manager_app.core.config.settings import get_settings
 
     get_settings.cache_clear()
@@ -31,9 +34,9 @@ def create_token_for(app, email="admin@example.com") -> str:
     """Create a user and return an auth token."""
     with app.app_context():
         from inventory_manager_app import db
-        from inventory_manager_app.core.models import Organisation, User
-        from inventory_manager_app.core.utils.auth import hash_password, create_token
         from inventory_manager_app.core.config.settings import get_settings
+        from inventory_manager_app.core.models import Organisation, User
+        from inventory_manager_app.core.utils.auth import create_token, hash_password
 
         org = Organisation.query.first()
         if not org:
