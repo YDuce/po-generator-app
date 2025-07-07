@@ -86,6 +86,10 @@
 
 * `APP_SECRET_KEY` – secret key for JWT signing
 * `APP_DATABASE_URL` – database URL (defaults to SQLite if unset)
+* `APP_WEBHOOK_SECRETS` – comma-separated HMAC keys for ShipStation webhook verification
+* `APP_SERVICE_ACCOUNT_FILE` – path to Google service account JSON used for Drive and Sheets access
+* `APP_WEBHOOK_SECRETS_FILE` – optional path to a file containing HMAC secrets (one per line)
+* `APP_REDIS_URL` – Redis connection string used for concurrency locks and rate limiting
 
 ## 5. Technical Specifications
 
@@ -170,5 +174,14 @@ The CI job runs the following checks:
 scripts/ci.sh
 ```
 
-This script performs an Alembic upgrade/downgrade, linting with ruff and flake8,
-mypy type checking in strict mode, and runs the pytest suite with coverage.
+This script performs an Alembic upgrade/downgrade, verifies Redis connectivity,
+runs linting with ruff and flake8, mypy type checking in strict mode, and
+executes the pytest suite with coverage (fail under 85%).
+
+## 9. Running Tests Locally
+
+Tests run exclusively on SQLite for the MVP phase. No PostgreSQL instance is required.
+
+```bash
+pytest --cov
+```

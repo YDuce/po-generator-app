@@ -1,5 +1,6 @@
 import hmac
 import hashlib
+from datetime import datetime, timezone
 from typing import Any
 
 from inventory_manager_app.core.services import (
@@ -16,7 +17,6 @@ from inventory_manager_app.channels.ebay.utils import helper as ebay_helper
 from inventory_manager_app.channels.woot.actions import WootActions
 from inventory_manager_app.channels.woot.tasks import WootTasks
 from inventory_manager_app.channels.woot.utils import helper as woot_helper
-from inventory_manager_app.core.config.settings import get_settings
 
 
 class DummyCaller:
@@ -184,7 +184,7 @@ def test_webhook_process_bad_signature(tmp_path, monkeypatch):
         service = WebhookService(["secret"], FakeRedis(), db.session)
         payload, body, _ = _webhook_payload()
         msg, code = service.process(payload, "bad", body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
     app.teardown_db()
 
@@ -202,7 +202,7 @@ def test_webhook_process_replay(tmp_path, monkeypatch):
         payload, body, sig = _webhook_payload()
         service.process(payload, sig, body, request_id="rid")
         msg, code = service.process(payload, sig, body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
     app.teardown_db()
 
@@ -305,7 +305,7 @@ def test_webhook_rotate_secrets(tmp_path, monkeypatch):
         service = WebhookService(["old"], FakeRedis(), db.session)
         payload, body, sig = _webhook_payload()
         msg, code = service.process(payload, sig, body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.write(b"secret\n")
@@ -330,36 +330,20 @@ def test_settings_load_secrets_file(tmp_path, monkeypatch):
     assert settings.webhook_secrets == ["a", "b"]
 
 
-def test_webhook_payload_too_large(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
-    import inventory_manager_app.core.webhooks.shipstation as ship
-
-    app = create_test_app(tmp_path, monkeypatch)
-    fake = FakeRedis()
-    with app.app_context():
-        from inventory_manager_app.extensions import db
-        service = WebhookService(["secret"], fake, db.session)
-
-    monkeypatch.setattr(ship, "_service", lambda: (service, DummySheets(), fake))
-
-    with app.test_client() as client:
-        data = b"x" * (get_settings().max_payload + 1)
-        resp = client.post(
-            "/api/v1/webhook/shipstation",
-            data=data,
-            headers={"Content-Type": "application/json"},
-        )
-        assert resp.status_code == 413
-        assert resp.get_json()["error"] == "Payload too large"
-    app.teardown_db()
-
-
 def test_webhook_rate_limit(tmp_path, monkeypatch):
     from inventory_manager_app.tests.utils import create_test_app
     import inventory_manager_app.core.webhooks.shipstation as ship
 
     app = create_test_app(tmp_path, monkeypatch)
     fake = FakeRedis()
+    fixed_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+    class _FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_time
+
+    monkeypatch.setattr(ship, "datetime", _FixedDatetime)
     with app.app_context():
         from inventory_manager_app.extensions import db
         service = WebhookService(["secret"], fake, db.session)

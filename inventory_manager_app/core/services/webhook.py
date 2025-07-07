@@ -70,7 +70,7 @@ class WebhookService:
 
         if not self.verify(payload, signature):
             logger.warning("Webhook signature verification failed")
-            return "invalid signature", 400
+            return "invalid signature", 403
 
         from inventory_manager_app.core.schemas import OrderPayload
         try:
