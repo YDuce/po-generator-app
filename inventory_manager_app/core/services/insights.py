@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import insert
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 
 from ..models import Insight, Product, Reallocation
@@ -46,10 +47,16 @@ class InsightsService:
                     stmt = stmt.prefix_with("OR IGNORE")
                     self.db.execute(stmt)
                 elif dialect == "postgresql":
-                    stmt = stmt.on_conflict_do_nothing(
+                    pg_stmt = pg_insert(Reallocation).values(
+                        sku=product.sku,
+                        channel_origin=product.channel,
+                        reason=status,
+                        added_date=now,
+                    )
+                    pg_stmt = pg_stmt.on_conflict_do_nothing(
                         index_elements=["sku", "channel_origin", "reason"]
                     )
-                    self.db.execute(stmt)
+                    self.db.execute(pg_stmt)
                 else:
                     try:
                         self.db.execute(stmt)

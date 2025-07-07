@@ -17,7 +17,9 @@ class OrderRecord(Base):
 
     order_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     channel: Mapped[str] = mapped_column(String(50), nullable=False)
-    product_sku: Mapped[str] = mapped_column(ForeignKey("product.sku"), nullable=False)
+    product_sku: Mapped[str] = mapped_column(
+        ForeignKey("product.sku"), nullable=False, index=True
+    )
     quantity: Mapped[int] = mapped_column()
     ordered_date: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     product: Mapped["Product"] = relationship(back_populates="orders")

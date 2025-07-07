@@ -12,7 +12,7 @@ Flask-Dance==7.0.0
 # Database / migrations
 SQLAlchemy==2.0.27
 alembic==1.13.1
-# psycopg2-binary==2.9.9   # enable for Postgres deployments
+psycopg2-binary==2.9.9
 
 # Auth & security
 PyJWT==2.8.0
@@ -46,10 +46,6 @@ pytest-mock==3.12.0
 types-requests==2.31.0.10
 types-PyJWT==1.7.1
 # types-openpyxl==3.1.5.20250602   # comment out if not using openpyxl
-pydantic-settings==2.9.1
-oauth~=1.0.1
-httpx~=0.28.1
-celery~=5.5.3
-structlog~=25.4.0
-channels~=4.2.2
-SQLAlchemy-Utils~=0.41.2
+pydantic-settings==2.2.1
+structlog==24.1.0
+SQLAlchemy-Utils==0.41.1

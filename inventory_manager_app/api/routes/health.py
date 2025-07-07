@@ -1,8 +1,7 @@
 from flask import Blueprint
-from inventory_manager_app.core.config.settings import settings
 
 
-bp = Blueprint("health", __name__, url_prefix=settings.api_prefix)
+bp = Blueprint("health", __name__, url_prefix="/api/v1")
 
 
 @bp.route("/health", methods=["GET"])

@@ -6,7 +6,7 @@ from typing import Any, Callable, Optional
 from flask import abort, g, request
 from functools import wraps
 
-from inventory_manager_app.core.config.settings import settings
+from inventory_manager_app.core.config.settings import get_settings
 
 import jwt
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -41,6 +41,7 @@ def require_auth(role: Optional[str] = None) -> Callable:
                 abort(401)
             token = header.split()[1]
             try:
+                settings = get_settings()
                 payload = verify_token(token, settings.secret_key)
             except jwt.InvalidTokenError:
                 abort(401)
