@@ -29,6 +29,51 @@ def test_create_and_list_reallocation(tmp_path, monkeypatch):
         assert data["sku"] == "XYZ"
         resp = client.get("/api/v1/reallocations", headers=headers)
         assert resp.status_code == 200
-        items = resp.get_json()
-        assert any(r["sku"] == "XYZ" for r in items)
+        body = resp.get_json()
+        assert any(r["sku"] == "XYZ" for r in body["items"])
+    app.teardown_db()
+
+
+def test_reallocation_invalid_reason(tmp_path, monkeypatch):
+    from inventory_manager_app import db
+    from inventory_manager_app.core.models import Product
+
+    app = create_test_app(tmp_path, monkeypatch)
+    with app.app_context():
+        db.session.add(Product(sku="ABC", name="x", channel="amazon"))
+        db.session.commit()
+    token = create_token_for(app)
+    headers = {"Authorization": f"Bearer {token}"}
+    with app.test_client() as client:
+        resp = client.post(
+            "/api/v1/reallocations",
+            json={"sku": "ABC", "channel_origin": "amazon", "reason": "bad"},
+            headers=headers,
+        )
+        assert resp.status_code == 400
+    app.teardown_db()
+
+
+def test_reallocation_duplicate(tmp_path, monkeypatch):
+    from inventory_manager_app import db
+    from inventory_manager_app.core.models import Product
+
+    app = create_test_app(tmp_path, monkeypatch)
+    with app.app_context():
+        db.session.add(Product(sku="DUP", name="x", channel="amazon"))
+        db.session.commit()
+    token = create_token_for(app)
+    headers = {"Authorization": f"Bearer {token}"}
+    with app.test_client() as client:
+        assert client.post(
+            "/api/v1/reallocations",
+            json={"sku": "DUP", "channel_origin": "amazon", "reason": "slow-mover"},
+            headers=headers,
+        ).status_code == 201
+        resp = client.post(
+            "/api/v1/reallocations",
+            json={"sku": "DUP", "channel_origin": "amazon", "reason": "slow-mover"},
+            headers=headers,
+        )
+        assert resp.status_code == 409
     app.teardown_db()

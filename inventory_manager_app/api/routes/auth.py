@@ -1,13 +1,10 @@
 """Auth routes."""
 
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, abort, jsonify, request
 
-from inventory_manager_app.core.models import User
-from inventory_manager_app.core.utils.auth import (
-    create_token,
-    verify_password,
-)
 from inventory_manager_app.core.config.settings import get_settings
+from inventory_manager_app.core.models import User
+from inventory_manager_app.core.utils.auth import create_token, verify_password
 
 bp = Blueprint("auth", __name__, url_prefix="/api/v1")
 
@@ -23,5 +20,10 @@ def login() -> tuple[dict, int]:
     if not user or not verify_password(password, user.password_hash):
         abort(401)
     settings = get_settings()
-    token = create_token({"sub": user.id}, settings.secret_key)
+    payload = {
+        "sub": user.id,
+        "org_id": user.organisation_id,
+        "roles": user.allowed_channels or ["user"],
+    }
+    token = create_token(payload, settings.secret_key)
     return jsonify({"token": token}), 200

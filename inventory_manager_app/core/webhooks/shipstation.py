@@ -15,6 +15,8 @@ import redis
 
 bp = Blueprint("shipstation", __name__, url_prefix="/api/v1")
 
+MAX_PAYLOAD_BYTES = 16384
+
 
 def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
     settings = get_settings()
@@ -28,7 +30,7 @@ def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
 @bp.route("/webhook/shipstation", methods=["POST"])
 def handle_webhook() -> tuple[str, int]:
     service, sheets, client = _service()
-    if request.content_length and request.content_length > get_settings().max_payload:
+    if request.content_length and request.content_length > MAX_PAYLOAD_BYTES:
         abort_json(413, "Payload too large")
     key = f"rate:{int(datetime.now(timezone.utc).timestamp())}"
     if client.incr(key) > 100:

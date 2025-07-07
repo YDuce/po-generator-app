@@ -12,12 +12,12 @@ class Settings(BaseSettings):  # type: ignore[misc]
     model_config = SettingsConfigDict(env_prefix="APP_")
 
     secret_key: str
-    database_url: str = "sqlite:///inventory.db"
+    database_url: str = "sqlite:///instance/dev.db"
     max_payload: int = 1024
     redis_url: str = "redis://localhost:6379/0"
     webhook_secrets: list[str] | str = []
     webhook_secrets_file: str | None = None
-    service_account_file: str = "secrets/test-service-key.json"
+    service_account_file: str = "secrets/service-account.json"
 
     def model_post_init(self, __context: Any) -> None:
         if not self.secret_key:
@@ -33,6 +33,7 @@ class Settings(BaseSettings):  # type: ignore[misc]
         elif isinstance(self.webhook_secrets, str):
             self.webhook_secrets = [s for s in self.webhook_secrets.split(",") if s]
         import os
+
         if not os.path.exists(self.service_account_file):
             raise ValueError(
                 "Service account file not found: " f"{self.service_account_file}"

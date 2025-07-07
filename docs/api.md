@@ -63,6 +63,23 @@ Response: 200 OK
 }
 ```
 
+### Email Login
+
+```http
+POST /api/v1/login
+Content-Type: application/json
+
+{
+    "email": "user@example.com",
+    "password": "secret"
+}
+
+Response: 200 OK
+{
+    "token": "<jwt_token>"
+}
+```
+
 ### User Management
 
 #### Get Current User
@@ -426,8 +443,9 @@ X-ShipStation-Signature: <HMAC>
 
 Response Codes:
 - 204 Accepted
-- 400 Invalid signature, payload, or unknown channel → {"error": "..."}
-- 413 Payload too large → {"error": "Payload too large"}
+- 400 Invalid payload or unknown channel → {"error": "..."}
+- 403 Forbidden → {"error": "Invalid signature"}
+- 413 Payload too large
 - 429 Too many requests → {"error": "Too many requests"}
 - 500 Server error
 ```

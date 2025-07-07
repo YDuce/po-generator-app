@@ -1,10 +1,12 @@
-from .user import User
+"""Re-export core models so imports stay consistent."""
+
+from .channel_sheet import ChannelSheet
+from .insights import Insight
+from .order import OrderRecord
 from .organisation import Organisation
 from .product import Product
-from .order import OrderRecord
-from .insights import Insight
 from .reallocation import Reallocation
-from .channel_sheet import ChannelSheet
+from .user import User
 
 __all__ = [
     "User",
