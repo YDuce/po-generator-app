@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PO Generator App uses SQLAlchemy ORM with Alembic for database migrations. This document describes the database models, their relationships, and the migration process.
+The Inventory Manager App uses SQLAlchemy ORM with Alembic for database migrations. This document describes the database models, their relationships, and the migration process.
 
 ## Models
 
@@ -46,6 +46,21 @@ class Session(db.Model):
     expires_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+```
+
+### ChannelSheet Model
+
+Maps each organisation's channel name to its Google Drive folder and spreadsheet identifiers.
+
+```python
+class ChannelSheet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    organisation_id = db.Column(db.Integer, db.ForeignKey('organisation.id'), nullable=False)
+    channel = db.Column(db.String(50), nullable=False)
+    folder_id = db.Column(db.String(255), nullable=False)
+    spreadsheet_id = db.Column(db.String(255), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('organisation_id', 'channel'),)
 ```
 
 ## Relationships

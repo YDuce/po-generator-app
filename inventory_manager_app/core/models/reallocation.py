@@ -19,7 +19,7 @@ from .base import Base
 class Reallocation(Base):
     """Product reallocation entry between channels."""
 
-    __tablename__ = "reallocation"
+    __tablename__ = "reallocation"  # type: ignore[assignment]
     __table_args__ = (
         UniqueConstraint(
             "sku", "channel_origin", "reason", name="uq_reallocation_sku_chan_reason"

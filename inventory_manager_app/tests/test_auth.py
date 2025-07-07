@@ -49,6 +49,11 @@ def test_auth_decorator(tmp_path, monkeypatch):
     with app.test_client() as client:
         resp = client.get("/api/v1/reallocations")
         assert resp.status_code == 401
+        resp = client.get(
+            "/api/v1/reallocations",
+            headers={"Authorization": "Bearer bad"},
+        )
+        assert resp.status_code == 401
         token = client.post(
             "/api/v1/login",
             json={"email": "user@example.com", "password": "secret"},

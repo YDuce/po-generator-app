@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from inventory_manager_app.tests.utils import create_test_app
 
@@ -15,7 +15,7 @@ def test_generate_insights_creates_reallocation(tmp_path, monkeypatch):
             name="Test",
             channel="amazon",
             quantity=0,
-            listed_date=datetime.utcnow() - timedelta(days=40),
+            listed_date=datetime.now(timezone.utc) - timedelta(days=40),
         )
         db.session.add(prod)
         db.session.commit()
@@ -43,7 +43,7 @@ def test_generate_insights_slow_mover(tmp_path, monkeypatch):
             name="Slow Prod",
             channel="woot",
             quantity=5,
-            listed_date=datetime.utcnow() - timedelta(days=40),
+            listed_date=datetime.now(timezone.utc) - timedelta(days=40),
         )
         db.session.add(prod)
         db.session.commit()

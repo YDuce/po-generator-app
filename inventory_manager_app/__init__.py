@@ -1,20 +1,18 @@
 """Flask application factory."""
 
-from flask import Flask
+from uuid import uuid4
 
-from .logging import configure_logging
+import structlog
+from flask import Flask, request
+from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_talisman import Talisman
 
-from .extensions import db
-from .core.config.settings import get_settings
-from .api.routes import (
-    auth_bp,
-    organisation_bp,
-    webhook_routes,
-    reallocation_bp,
-    health_bp,
-)
+from .api.routes import auth_bp, health_bp, organisation_bp, reallocation_bp, webhook_bp
 from .channels import load_channels
+from .core.config.settings import get_settings
+from .extensions import db
+from .logging import configure_logging
 
 migrate = Migrate()
 
@@ -23,10 +21,21 @@ def create_app() -> Flask:
     configure_logging()
     app = Flask(__name__)
     settings = get_settings()
+    CORS(app)
+    Talisman(app, content_security_policy=None, force_https=False)
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.database_url
     app.config["SECRET_KEY"] = settings.secret_key
     db.init_app(app)
     migrate.init_app(app, db)
+
+    @app.before_request
+    def _bind_request_id() -> None:
+        req_id = request.headers.get("X-Request-ID", str(uuid4()))
+        structlog.contextvars.bind_contextvars(request_id=req_id)
+
+    @app.teardown_request
+    def _clear_request_id(_: object) -> None:
+        structlog.contextvars.clear_contextvars()
 
     # Load channel plug-ins
     app.extensions["channels"] = load_channels()
@@ -34,8 +43,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(organisation_bp)
     app.register_blueprint(reallocation_bp)
-    for bp in webhook_routes:
-        app.register_blueprint(bp)
+    app.register_blueprint(webhook_bp)
 
     app.register_blueprint(health_bp)
 

@@ -1,15 +1,16 @@
 """Request validation helpers."""
 
 import re
-from flask import abort
+from flask import abort, jsonify, make_response
+from typing import Any
 
 _SAFE = re.compile(r"^[A-Za-z0-9._-]+$")
 
-__all__ = ["require_fields", "validate_drive_folder_id"]
+__all__ = ["require_fields", "validate_drive_folder_id", "abort_json"]
 
 
 def require_fields(
-    data: dict, fields: list[str], limits: dict[str, int] | None = None
+    data: dict[str, Any], fields: list[str], limits: dict[str, int] | None = None
 ) -> None:
     """Ensure required fields exist and honor optional length limits."""
 
@@ -27,3 +28,8 @@ def validate_drive_folder_id(folder_id: str) -> str:
     if not _SAFE.fullmatch(folder_id):
         raise ValueError(f"Invalid Drive folder id: {folder_id!r}")
     return folder_id
+
+
+def abort_json(code: int, message: str) -> None:
+    """Abort the request with a JSON error message."""
+    abort(make_response(jsonify(error=message), code))

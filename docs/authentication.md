@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PO Generator App uses a combination of Google OAuth and JWT tokens for authentication. This document describes the authentication flow and implementation details.
+The Inventory Manager App uses a combination of Google OAuth and JWT tokens for authentication. This document describes the authentication flow and implementation details.
 
 ## Authentication Flow
 

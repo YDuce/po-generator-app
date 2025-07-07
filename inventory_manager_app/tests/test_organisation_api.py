@@ -3,9 +3,26 @@
 from __future__ import annotations
 
 from inventory_manager_app.tests.utils import create_test_app, create_token_for
-
+from inventory_manager_app.tests.test_services import DummyCaller, FakeRedis
 
 def test_create_and_list_org(tmp_path, monkeypatch):
+    dummy = DummyCaller()
+
+    def fake_build(service, version, credentials=None, cache_discovery=False):
+        return dummy
+
+    monkeypatch.setattr("inventory_manager_app.core.services.drive.build", fake_build)
+    monkeypatch.setattr("inventory_manager_app.core.services.sheets.build", fake_build)
+    monkeypatch.setattr(
+        (
+            "inventory_manager_app.api.routes.organisation."
+            "Credentials.from_service_account_file"
+        ),
+        lambda *a, **k: object(),
+    )
+    import inventory_manager_app.api.routes.organisation as org_routes
+
+    monkeypatch.setattr(org_routes.redis.Redis, "from_url", lambda *a, **k: FakeRedis())
     app = create_test_app(tmp_path, monkeypatch)
     token = create_token_for(app)
     headers = {"Authorization": f"Bearer {token}"}
@@ -57,6 +74,27 @@ def test_org_auth_required(tmp_path, monkeypatch):
 
 
 def test_org_duplicate(tmp_path, monkeypatch):
+    dummy = DummyCaller()
+
+    def fake_build(service, version, credentials=None, cache_discovery=False):
+        return dummy
+
+    monkeypatch.setattr("inventory_manager_app.core.services.drive.build", fake_build)
+    monkeypatch.setattr("inventory_manager_app.core.services.sheets.build", fake_build)
+    import inventory_manager_app.api.routes.organisation as org_routes
+
+    monkeypatch.setattr(
+        org_routes.redis.Redis,
+        "from_url",
+        lambda *a, **k: FakeRedis(),
+    )
+    monkeypatch.setattr(
+        (
+            "inventory_manager_app.api.routes.organisation."
+            "Credentials.from_service_account_file"
+        ),
+        lambda *a, **k: object(),
+    )
     app = create_test_app(tmp_path, monkeypatch)
     token = create_token_for(app)
     headers = {"Authorization": f"Bearer {token}"}
