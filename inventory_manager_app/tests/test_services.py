@@ -18,7 +18,6 @@ from inventory_manager_app.core.services import (
     WebhookService,
 )
 
-
 class DummyCaller:
     def __init__(self):
         self.called = False
@@ -345,6 +344,7 @@ def test_settings_load_secrets_file(tmp_path, monkeypatch):
 
 
 def test_webhook_rate_limit(tmp_path, monkeypatch):
+    from inventory_manager_app.tests.utils import create_test_app
     import inventory_manager_app.core.webhooks.shipstation as ship
     from inventory_manager_app.tests.utils import create_test_app
 

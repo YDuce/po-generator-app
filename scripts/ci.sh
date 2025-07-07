@@ -19,6 +19,17 @@ except Exception as exc:
     sys.exit(1)
 PY
 
+# verify Redis connectivity
+python - <<'PY'
+import os, redis, sys
+url = os.environ.get('APP_REDIS_URL', 'redis://localhost:6379/0')
+try:
+    redis.Redis.from_url(url).ping()
+except Exception as exc:
+    print(f'Redis unreachable: {exc}', file=sys.stderr)
+    sys.exit(1)
+PY
+
 ruff check .
 flake8
 mypy --config-file mypy.ini --exclude 'inventory_manager_app/tests/' inventory_manager_app

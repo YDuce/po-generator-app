@@ -442,12 +442,12 @@ Content-Type: application/json
 X-ShipStation-Signature: <HMAC>
 
 Response Codes:
-- 204 Accepted
-- 400 Invalid payload or unknown channel → {"error": "..."}
-- 403 Forbidden → {"error": "Invalid signature"}
-- 413 Payload too large
-- 429 Too many requests → {"error": "Too many requests"}
-- 500 Server error
+- 204 Accepted  
+- 400 Invalid payload or unknown channel → {"error": "..."}  
+- 403 Forbidden → {"error": "Invalid signature"}  
+- 413 Payload too large → {"error": "Payload too large"}  
+- 429 Too many requests → {"error": "Too many requests"}  
+- 500 Server error  
 ```
 
 ## Testing
