@@ -1,0 +1,12 @@
+from flask import Blueprint
+
+
+bp = Blueprint("health", __name__, url_prefix="/api/v1")
+
+
+@bp.route("/health", methods=["GET"])
+def health() -> tuple[dict, int]:
+    return {"status": "ok"}, 200
+
+
+__all__ = ["bp"]

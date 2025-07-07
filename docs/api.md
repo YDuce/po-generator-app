@@ -424,7 +424,7 @@ The API includes a test suite with the following endpoints:
 ### Health Check
 
 ```http
-GET /api/health
+GET /api/v1/health
 
 Response: 200 OK
 {

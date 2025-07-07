@@ -69,6 +69,8 @@
 ## 4. Explicit Data Models & Schema
 
 * **Database:** SQLite (dev), PostgreSQL (prod).
+  See [docs/dev_db_policy.md](docs/dev_db_policy.md) for local setup details
+  including how to run Postgres with `docker-compose` during testing or CI.
 * **Datetime:** ISO-8601 explicitly timezone-aware.
 
 | Model        | Fields                                                                            | Constraints & Indices       |
@@ -79,6 +81,11 @@
 | OrderRecord  | order\_id (PK), channel, product\_sku (FK), quantity, ordered\_date (datetime+TZ) | Order ID unique, FK indexed |
 | Insights     | id (PK), product\_sku (FK), channel, status, generated\_date (datetime+TZ)        | FK indexed, status indexed  |
 | Reallocation | sku, channel\_origin, reason, added\_date (datetime+TZ)                           | Indexed on SKU              |
+
+### Required Environment Variables
+
+* `APP_SECRET_KEY` – secret key for JWT signing
+* `APP_DATABASE_URL` – database URL (defaults to SQLite if unset)
 
 ## 5. Technical Specifications
 
@@ -111,6 +118,7 @@
 ### 5.6 Logging & Observability
 
 * Explicit structured JSON logs with correlation IDs.
+* Logging uses **structlog** with JSON output only.
 * Explicit metrics: webhook latency, API call durations, errors logged.
 
 ### 5.7 Security & Compliance

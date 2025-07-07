@@ -1,13 +1,8 @@
-# run.py ─ dev-only launcher
-from pathlib import Path
+from inventory_manager_app.logging import configure_logging
+from inventory_manager_app import create_app
 
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path=Path(".env"), override=False)
-
-from app import create_app
-
+configure_logging()
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=app.config.get("DEBUG", False))
+    app.run()
