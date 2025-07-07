@@ -2,21 +2,14 @@
 
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 from flask_talisman import Talisman
 
-from .logging import configure_logging
-from flask_migrate import Migrate
-
-from .extensions import db
-from .core.config.settings import get_settings
-from .api.routes import (
-    auth_bp,
-    organisation_bp,
-    webhook_routes,
-    reallocation_bp,
-    health_bp,
-)
+from .api.routes import auth_bp, health_bp, organisation_bp, reallocation_bp, webhook_bp
 from .channels import load_channels
+from .core.config.settings import get_settings
+from .extensions import db
+from .logging import configure_logging
 
 migrate = Migrate()
 
@@ -38,8 +31,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(organisation_bp)
     app.register_blueprint(reallocation_bp)
-    for bp in webhook_routes:
-        app.register_blueprint(bp)
+    app.register_blueprint(webhook_bp)
 
     app.register_blueprint(health_bp)
 

@@ -9,7 +9,6 @@ from inventory_manager_app.core.services.reallocation_repo import (
 from inventory_manager_app.core.utils.auth import require_auth
 from inventory_manager_app.core.utils.validation import require_fields
 from inventory_manager_app.core.models import Product
-from inventory_manager_app.core.config.settings import get_settings
 
 REASONS = {"slow-mover", "out-of-stock"}
 
@@ -38,9 +37,6 @@ def list_reallocations() -> tuple[list[dict], int]:
 @require_auth("admin")
 def create_reallocation() -> tuple[dict, int]:
     """Create a new reallocation entry if the payload is valid."""
-    settings = get_settings()
-    if request.content_length and request.content_length > settings.max_payload:
-        abort(413)
     payload = request.get_json() or {}
     require_fields(
         payload,

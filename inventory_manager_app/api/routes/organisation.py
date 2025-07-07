@@ -1,29 +1,29 @@
 """Organisation routes."""
 
-from flask import Blueprint, jsonify, request, url_for, Response
-from sqlalchemy.exc import IntegrityError
+import redis
 import structlog
+from flask import Blueprint, Response, jsonify, request, url_for
+from google.oauth2.service_account import Credentials
+from sqlalchemy.exc import IntegrityError
 
+from inventory_manager_app.channels.registry import CHANNELS
+from inventory_manager_app.core.config.settings import get_settings
+from inventory_manager_app.core.models import ChannelSheet, Organisation
+from inventory_manager_app.core.services import DriveService, SheetsService
 from inventory_manager_app.core.utils.auth import require_auth
 from inventory_manager_app.core.utils.validation import (
+    abort_json,
     require_fields,
     validate_drive_folder_id,
-    abort_json,
 )
-from inventory_manager_app.core.models import Organisation, ChannelSheet
-from inventory_manager_app.channels.registry import CHANNELS
 from inventory_manager_app.extensions import db
-from inventory_manager_app.core.services import DriveService, SheetsService
-from inventory_manager_app.core.config.settings import get_settings
-from google.oauth2.service_account import Credentials
-import redis
 
 logger = structlog.get_logger(__name__)
 
-organisation_bp = Blueprint("organisation", __name__, url_prefix="/api/v1")
+bp = Blueprint("organisation", __name__, url_prefix="/api/v1")
 
 
-@organisation_bp.route("/organisations", methods=["POST"])
+@bp.route("/organisations", methods=["POST"])
 @require_auth("admin")
 def create_org() -> tuple[Response, int]:
     payload = request.get_json() or {}
@@ -65,7 +65,7 @@ def create_org() -> tuple[Response, int]:
     return response, 201
 
 
-@organisation_bp.route("/organisations", methods=["GET"])
+@bp.route("/organisations", methods=["GET"])
 @require_auth("admin")
 def list_orgs() -> tuple[list[dict], int]:
     data = [
