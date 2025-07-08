@@ -88,6 +88,7 @@
 * `APP_SERVICE_ACCOUNT_FILE` – path to Google service account JSON used for Drive and Sheets access
 * `APP_WEBHOOK_SECRETS_FILE` – optional path to a file containing HMAC secrets (one per line)
 * `APP_REDIS_URL` – Redis connection string used for concurrency locks and rate limiting
+* `APP_MAX_PAYLOAD` – maximum allowed ShipStation webhook payload size in bytes (defaults to 1024)
 
 ### Local Redis Setup
 
@@ -106,7 +107,7 @@ Set `APP_REDIS_URL=redis://localhost:6379/0` before running the application or t
 * Explicitly HMAC SHA256 signed; header: `X-ShipStation-Signature`.
 * Secrets explicitly managed and rotated quarterly.
 * Webhook idempotency and 5-minute replay window enforced.
-* Payloads over 1 024 bytes are rejected with HTTP 413.
+* Payloads over 1024 bytes are rejected with HTTP 413.
 
 ### 5.2 API & Authorization
 
