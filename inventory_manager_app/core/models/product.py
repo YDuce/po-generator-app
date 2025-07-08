@@ -14,7 +14,7 @@ from .base import Base
 
 
 class Product(Base):
-    __tablename__ = "product"  # type: ignore[assignment]
+    __tablename__ = "product"
 
     sku: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)

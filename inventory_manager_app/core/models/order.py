@@ -13,7 +13,7 @@ from .base import Base
 
 
 class OrderRecord(Base):
-    __tablename__ = "order_record"  # type: ignore[assignment]
+    __tablename__ = "order_record"
 
     order_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     channel: Mapped[str] = mapped_column(String(50), nullable=False)

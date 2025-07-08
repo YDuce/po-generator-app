@@ -9,7 +9,7 @@ from .base import Base
 class ChannelSheet(Base):
     """Mapping of channel names to spreadsheet IDs."""
 
-    __tablename__ = "channel_sheet"  # type: ignore[assignment]
+    __tablename__ = "channel_sheet"
 
     __table_args__ = (
         UniqueConstraint("organisation_id", "channel", name="uq_org_channel"),

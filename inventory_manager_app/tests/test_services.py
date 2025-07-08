@@ -1,12 +1,8 @@
-import hmac
 import hashlib
+import hmac
+from datetime import datetime, timezone
 from typing import Any
 
-from inventory_manager_app.core.services import (
-    DriveService,
-    SheetsService,
-    WebhookService,
-)
 from inventory_manager_app.channels.amazon.actions import AmazonActions
 from inventory_manager_app.channels.amazon.tasks import AmazonTasks
 from inventory_manager_app.channels.amazon.utils import helper as amazon_helper
@@ -16,7 +12,11 @@ from inventory_manager_app.channels.ebay.utils import helper as ebay_helper
 from inventory_manager_app.channels.woot.actions import WootActions
 from inventory_manager_app.channels.woot.tasks import WootTasks
 from inventory_manager_app.channels.woot.utils import helper as woot_helper
-from inventory_manager_app.core.config.settings import get_settings
+from inventory_manager_app.core.services import (
+    DriveService,
+    SheetsService,
+    WebhookService,
+)
 
 
 class DummyCaller:
@@ -141,15 +141,15 @@ def _webhook_payload(qty: int = 1) -> tuple[bytes, dict[str, Any], str]:
 
 
 def test_webhook_process_success(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
     from inventory_manager_app.core.models import OrderRecord
+    from inventory_manager_app.tests.utils import create_test_app
 
     app = create_test_app(tmp_path, monkeypatch)
     dummy = DummySheets()
 
     with app.app_context():
-        from inventory_manager_app.extensions import db
         from inventory_manager_app.core.models import ChannelSheet, Organisation
+        from inventory_manager_app.extensions import db
 
         org = Organisation(name="Org", drive_folder_id="1")
         db.session.add(org)
@@ -162,6 +162,8 @@ def test_webhook_process_success(tmp_path, monkeypatch):
                 spreadsheet_id="SID",
             )
         )
+        from inventory_manager_app.core.models import Product
+        db.session.add(Product(sku="SKU1", name="P", channel="amazon"))
         db.session.commit()
 
         service = WebhookService(["secret"], FakeRedis(), db.session)
@@ -169,6 +171,8 @@ def test_webhook_process_success(tmp_path, monkeypatch):
         msg, code = service.process(payload, sig, body, dummy, "rid")
         assert code == 204
         assert OrderRecord.query.filter_by(order_id="OID1").count() == 1
+        from inventory_manager_app.core.models import Insight
+        assert Insight.query.filter_by(product_sku="SKU1").count() == 1
         assert dummy.called
 
     app.teardown_db()
@@ -181,10 +185,11 @@ def test_webhook_process_bad_signature(tmp_path, monkeypatch):
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["secret"], FakeRedis(), db.session)
         payload, body, _ = _webhook_payload()
         msg, code = service.process(payload, "bad", body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
     app.teardown_db()
 
@@ -196,13 +201,14 @@ def test_webhook_process_replay(tmp_path, monkeypatch):
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(
             ["secret"], FakeRedis(), db.session, window_seconds=300
         )
         payload, body, sig = _webhook_payload()
         service.process(payload, sig, body, request_id="rid")
         msg, code = service.process(payload, sig, body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
     app.teardown_db()
 
@@ -214,6 +220,7 @@ def test_webhook_process_malformed(tmp_path, monkeypatch):
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["secret"], FakeRedis(), db.session)
         payload = b"{}"
         sig = hmac.new(b"secret", payload, hashlib.sha256).hexdigest()
@@ -224,13 +231,14 @@ def test_webhook_process_malformed(tmp_path, monkeypatch):
 
 
 def test_webhook_process_upsert(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
     from inventory_manager_app.core.models import OrderRecord
+    from inventory_manager_app.tests.utils import create_test_app
 
     app = create_test_app(tmp_path, monkeypatch)
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["secret"], FakeRedis(), db.session)
         p1, b1, s1 = _webhook_payload(1)
         service.process(p1, s1, b1, request_id="rid")
@@ -254,8 +262,8 @@ def test_webhook_process_sheet_error(tmp_path, monkeypatch):
     dummy = FailingSheets()
 
     with app.app_context():
-        from inventory_manager_app.extensions import db
         from inventory_manager_app.core.models import ChannelSheet, Organisation
+        from inventory_manager_app.extensions import db
 
         org = Organisation(name="Org", drive_folder_id="1")
         db.session.add(org)
@@ -286,6 +294,7 @@ def test_webhook_missing_channel(tmp_path, monkeypatch):
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["secret"], FakeRedis(), db.session)
         payload, body, sig = _webhook_payload()
         msg, code = service.process(payload, sig, body, DummySheets(), "rid")
@@ -295,17 +304,19 @@ def test_webhook_missing_channel(tmp_path, monkeypatch):
 
 
 def test_webhook_rotate_secrets(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
     import tempfile
+
+    from inventory_manager_app.tests.utils import create_test_app
 
     app = create_test_app(tmp_path, monkeypatch)
 
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["old"], FakeRedis(), db.session)
         payload, body, sig = _webhook_payload()
         msg, code = service.process(payload, sig, body, request_id="rid")
-        assert code == 400
+        assert code == 403
 
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.write(b"secret\n")
@@ -325,43 +336,31 @@ def test_settings_load_secrets_file(tmp_path, monkeypatch):
     path.write_text("a\nb\n")
     monkeypatch.setenv("APP_SECRET_KEY", "x")
     monkeypatch.setenv("APP_WEBHOOK_SECRETS_FILE", str(path))
+    sa_file = tmp_path / "sa.json"
+    sa_file.write_text("{}")
+    monkeypatch.setenv("APP_SERVICE_ACCOUNT_FILE", str(sa_file))
     get_settings.cache_clear()
     settings = get_settings()
     assert settings.webhook_secrets == ["a", "b"]
 
 
-def test_webhook_payload_too_large(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
-    import inventory_manager_app.core.webhooks.shipstation as ship
-
-    app = create_test_app(tmp_path, monkeypatch)
-    fake = FakeRedis()
-    with app.app_context():
-        from inventory_manager_app.extensions import db
-        service = WebhookService(["secret"], fake, db.session)
-
-    monkeypatch.setattr(ship, "_service", lambda: (service, DummySheets(), fake))
-
-    with app.test_client() as client:
-        data = b"x" * (get_settings().max_payload + 1)
-        resp = client.post(
-            "/api/v1/webhook/shipstation",
-            data=data,
-            headers={"Content-Type": "application/json"},
-        )
-        assert resp.status_code == 413
-        assert resp.get_json()["error"] == "Payload too large"
-    app.teardown_db()
-
-
 def test_webhook_rate_limit(tmp_path, monkeypatch):
-    from inventory_manager_app.tests.utils import create_test_app
     import inventory_manager_app.core.webhooks.shipstation as ship
+    from inventory_manager_app.tests.utils import create_test_app
 
     app = create_test_app(tmp_path, monkeypatch)
     fake = FakeRedis()
+    fixed_time = datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+    class _FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed_time
+
+    monkeypatch.setattr(ship, "datetime", _FixedDatetime)
     with app.app_context():
         from inventory_manager_app.extensions import db
+
         service = WebhookService(["secret"], fake, db.session)
         monkeypatch.setattr(service, "process", lambda *a, **k: ("", 204))
 

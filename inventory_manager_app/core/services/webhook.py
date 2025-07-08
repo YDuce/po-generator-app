@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 import structlog
 
-from inventory_manager_app.core.models import OrderRecord, ChannelSheet
+from inventory_manager_app.core.models import OrderRecord, ChannelSheet, Product
 from .sheets import SheetsService
 
 
@@ -70,7 +70,7 @@ class WebhookService:
 
         if not self.verify(payload, signature):
             logger.warning("Webhook signature verification failed")
-            return "invalid signature", 400
+            return "invalid signature", 403
 
         from inventory_manager_app.core.schemas import OrderPayload
         try:
@@ -104,6 +104,16 @@ class WebhookService:
                 )
                 self.db.add(order)
             self.db.commit()
+
+            # generate insights for this product
+            from .insights import InsightsService
+            product = (
+                self.db.query(Product)
+                .filter_by(sku=payload_data.product_sku)
+                .first()
+            )
+            if product:
+                InsightsService(self.db).update_for_product(product)
 
             if sheets:
                 try:

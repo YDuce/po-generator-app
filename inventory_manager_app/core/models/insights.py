@@ -13,7 +13,7 @@ from .base import Base
 
 
 class Insight(Base):
-    __tablename__ = "insight"  # type: ignore[assignment]
+    __tablename__ = "insight"
 
     product_sku: Mapped[str] = mapped_column(
         ForeignKey("product.sku"), nullable=False, index=True
