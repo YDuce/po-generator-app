@@ -11,7 +11,10 @@ from inventory_manager_app.core.services.reallocation_repo import (
 from inventory_manager_app.core.utils.auth import require_auth
 from inventory_manager_app.core.utils.validation import abort_json
 from inventory_manager_app.core.models import Product
-from inventory_manager_app.core.schemas import NewReallocationPayload, BatchReallocationPayload
+from inventory_manager_app.core.schemas import (
+    BatchReallocationPayload,
+    NewReallocationPayload,
+)
 
 REASONS = {"slow-mover", "out-of-stock"}
 

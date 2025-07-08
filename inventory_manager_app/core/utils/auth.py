@@ -1,7 +1,7 @@
 """JWT helpers."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional, TypeVar, ParamSpec, cast
+from typing import Any, Callable, Optional, TypeVar, ParamSpec
 
 from flask import abort, g, request
 from functools import wraps
@@ -19,7 +19,9 @@ def create_token(payload: dict[str, Any], secret: str, expires_in: int = 86400) 
 
 
 def verify_token(token: str, secret: str) -> dict[str, Any]:
-    return cast(dict[str, Any], jwt.decode(token, secret, algorithms=["HS256"]))
+    decoded = jwt.decode(token, secret, algorithms=["HS256"])  # returns dict[str, Any]
+    assert isinstance(decoded, dict)
+    return decoded
 
 
 def hash_password(password: str) -> str:
