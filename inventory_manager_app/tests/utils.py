@@ -25,7 +25,7 @@ def create_test_app(tmp_path, monkeypatch):
     def teardown() -> None:
         pass
 
-    app.teardown_db = teardown  # type: ignore[attr-defined]
+    setattr(app, "teardown_db", teardown)
 
     return app
 

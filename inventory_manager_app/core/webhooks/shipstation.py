@@ -30,7 +30,8 @@ def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
 @bp.route("/webhook/shipstation", methods=["POST"])
 def handle_webhook() -> tuple[str, int]:
     service, sheets, client = _service()
-    if request.content_length and request.content_length > MAX_PAYLOAD_BYTES:
+    settings = get_settings()
+    if request.content_length and request.content_length > settings.max_payload:
         abort_json(413, "Payload too large")
     key = f"rate:{int(datetime.now(timezone.utc).timestamp())}"
     if client.incr(key) > 100:

@@ -11,7 +11,7 @@ from .base import Base
 
 
 class User(Base):
-    __tablename__ = "user"  # type: ignore[assignment]
+    __tablename__ = "user"
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     organisation_id: Mapped[int] = mapped_column(
         ForeignKey("organisation.id"), nullable=False, index=True

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, EmailStr, model_validator
 
 
 class OrderPayload(BaseModel):
@@ -15,7 +14,7 @@ class OrderPayload(BaseModel):
 
 class UserSchema(BaseModel):
     id: int
-    email: str
+    email: EmailStr
     organisation_id: int
     roles: list[str]
 

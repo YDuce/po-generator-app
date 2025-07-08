@@ -48,6 +48,7 @@ def create_reallocation() -> tuple[dict, int]:
         {"channel_origin": 50, "reason": 255},
     )
     try:
+
         data_model = ReallocationCreatePayload.model_validate(payload)
     except Exception as exc:
         abort_json(400, str(exc))

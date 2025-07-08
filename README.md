@@ -96,6 +96,7 @@ Install Redis locally (e.g., `sudo apt-get install redis-server`) and start it:
 ```bash
 redis-server --daemonize yes
 ```
+
 Set `APP_REDIS_URL=redis://localhost:6379/0` before running the application or tests.
 
 ## 5. Technical Specifications
