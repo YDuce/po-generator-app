@@ -100,7 +100,7 @@ paths:
         '403':
           description: Forbidden
         '413':
-          description: Payload too large
+          description: Payload too large (> 1 024 bytes)
         '429':
           description: Too many requests
         '500':

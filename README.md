@@ -106,6 +106,7 @@ Set `APP_REDIS_URL=redis://localhost:6379/0` before running the application or t
 * Explicitly HMAC SHA256 signed; header: `X-ShipStation-Signature`.
 * Secrets explicitly managed and rotated quarterly.
 * Webhook idempotency and 5-minute replay window enforced.
+* Payloads over 1 024 bytes are rejected with HTTP 413.
 
 ### 5.2 API & Authorization
 

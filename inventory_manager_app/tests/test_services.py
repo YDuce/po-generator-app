@@ -381,3 +381,32 @@ def test_webhook_rate_limit(tmp_path, monkeypatch):
         assert resp.status_code == 429
         assert resp.get_json()["error"] == "Too many requests"
     app.teardown_db()
+
+
+def test_webhook_payload_limit(tmp_path, monkeypatch):
+    import inventory_manager_app.core.webhooks.shipstation as ship
+    from inventory_manager_app.tests.utils import create_test_app
+    from inventory_manager_app.core.config.settings import get_settings
+
+    app = create_test_app(tmp_path, monkeypatch)
+    fake = FakeRedis()
+
+    with app.app_context():
+        from inventory_manager_app.extensions import db
+
+        service = WebhookService(["secret"], fake, db.session)
+        monkeypatch.setattr(service, "process", lambda *a, **k: ("", 204))
+
+    monkeypatch.setattr(ship, "_service", lambda: (service, DummySheets(), fake))
+
+    with app.test_client() as client:
+        size = get_settings().max_payload + 1
+        resp = client.post(
+            "/api/v1/webhook/shipstation",
+            data=b"x" * size,
+            headers={"Content-Type": "application/json"},
+        )
+        assert resp.status_code == 413
+        assert resp.get_json()["error"] == "Payload too large"
+
+    app.teardown_db()
