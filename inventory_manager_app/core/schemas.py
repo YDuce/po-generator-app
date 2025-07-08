@@ -19,6 +19,11 @@ class UserSchema(BaseModel):
     roles: list[str]
 
 
+class LoginPayload(BaseModel):
+    email: EmailStr
+    password: str
+
+
 class OrganisationSchema(BaseModel):
     id: int
     name: str

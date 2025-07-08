@@ -1,7 +1,7 @@
 """JWT helpers."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypeVar, ParamSpec, cast
 
 from flask import abort, g, request
 from functools import wraps
@@ -19,7 +19,7 @@ def create_token(payload: dict[str, Any], secret: str, expires_in: int = 86400) 
 
 
 def verify_token(token: str, secret: str) -> dict[str, Any]:
-    return jwt.decode(token, secret, algorithms=["HS256"])
+    return cast(dict[str, Any], jwt.decode(token, secret, algorithms=["HS256"]))
 
 
 def hash_password(password: str) -> str:
@@ -30,14 +30,18 @@ def verify_password(password: str, hash_: str) -> bool:
     return check_password_hash(hash_, password)
 
 
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
 def require_auth(
     role: Optional[str] = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator enforcing JWT auth and optional role check."""
 
-    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(fn: Callable[P, R]) -> Callable[P, R]:
         @wraps(fn)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             header = request.headers.get("Authorization", "")
             if not header.startswith("Bearer "):
                 abort(401)

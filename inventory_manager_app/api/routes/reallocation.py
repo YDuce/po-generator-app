@@ -9,9 +9,9 @@ from inventory_manager_app.core.services.reallocation_repo import (
     ReallocationRepository,
 )
 from inventory_manager_app.core.utils.auth import require_auth
-from inventory_manager_app.core.utils.validation import abort_json, require_fields
+from inventory_manager_app.core.utils.validation import abort_json
 from inventory_manager_app.core.models import Product
-from inventory_manager_app.core.schemas import NewReallocationPayload
+from inventory_manager_app.core.schemas import NewReallocationPayload, BatchReallocationPayload
 
 REASONS = {"slow-mover", "out-of-stock"}
 
@@ -44,33 +44,35 @@ def list_reallocations() -> tuple[Response, int]:
 def create_reallocation() -> tuple[Response, int]:
     """Create a new reallocation entry if the payload is valid."""
     payload = request.get_json() or {}
-    require_fields(
-        payload,
-        ["sku", "channel_origin", "reason"],
-        {"channel_origin": 50, "reason": 255},
-    )
     try:
-
-        data_model = NewReallocationPayload.model_validate(payload)
+        if "items" in payload:
+            data_models = BatchReallocationPayload.model_validate(payload).items
+        else:
+            data_models = [NewReallocationPayload.model_validate(payload)]
     except Exception as exc:
         abort_json(400, str(exc))
 
-    if not db.session.query(Product).filter_by(sku=data_model.sku).first():
-        abort_json(400, "Unknown SKU")
     repo = ReallocationRepository(cast(Session, db.session))
-    if repo.exists(data_model.sku, data_model.channel_origin, data_model.reason):
-        abort_json(409, "Reallocation exists")
-    realloc = repo.create(
-        sku=data_model.sku,
-        channel_origin=data_model.channel_origin,
-        reason=data_model.reason,
-    )
+    created = []
+    for dm in data_models:
+        if not db.session.query(Product).filter_by(sku=dm.sku).first():
+            abort_json(400, "Unknown SKU")
+        if repo.exists(dm.sku, dm.channel_origin, dm.reason):
+            abort_json(409, "Reallocation exists")
+        realloc = repo.create(
+            sku=dm.sku,
+            channel_origin=dm.channel_origin,
+            reason=dm.reason,
+        )
+        created.append(
+            {
+                "id": realloc.id,
+                "sku": realloc.sku,
+                "channel_origin": realloc.channel_origin,
+                "reason": realloc.reason,
+                "added_date": realloc.added_date.isoformat(),
+            }
+        )
     db.session.commit()
-    data = {
-        "id": realloc.id,
-        "sku": realloc.sku,
-        "channel_origin": realloc.channel_origin,
-        "reason": realloc.reason,
-        "added_date": realloc.added_date.isoformat(),
-    }
+    data = created[0] if len(created) == 1 else {"items": created}
     return jsonify(data), 201
