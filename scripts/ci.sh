@@ -23,4 +23,4 @@ ruff check .
 flake8
 mypy --config-file mypy.ini --exclude 'inventory_manager_app/tests/' inventory_manager_app
 
-pytest --cov=inventory_manager_app --cov-fail-under=85 -q
+pytest --cov=inventory_manager_app --cov-report=term-missing --cov-fail-under=85 -q

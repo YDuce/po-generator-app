@@ -33,13 +33,13 @@ class ReallocationSchema(BaseModel):
     added_date: datetime
 
 
-class ReallocationCreatePayload(BaseModel):
+class NewReallocationPayload(BaseModel):
     sku: str
     channel_origin: str
     reason: str
 
     @model_validator(mode="after")
-    def check_reason(self) -> "ReallocationCreatePayload":
+    def check_reason(self) -> "NewReallocationPayload":
         if self.reason not in {"slow-mover", "out-of-stock"}:
             raise ValueError("Invalid reason")
         return self

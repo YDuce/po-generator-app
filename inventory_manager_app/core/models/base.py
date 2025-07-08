@@ -6,12 +6,12 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from inventory_manager_app.extensions import db
 
 
-class Base(db.Model):  # type: ignore[misc]
+class Base(db.Model):
     """Base model with automatic table name and integer primary key."""
 
     __abstract__ = True
 
-    @declared_attr.directive  # type: ignore[misc]
+    @declared_attr.directive
     def __tablename__(cls) -> str:
         return str(cls.__name__.lower())
 

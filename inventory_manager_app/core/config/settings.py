@@ -6,7 +6,7 @@ from typing import Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):  # type: ignore[misc]
+class Settings(BaseSettings):
     """Load configuration from environment."""
 
     model_config = SettingsConfigDict(env_prefix="APP_")
