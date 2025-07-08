@@ -30,7 +30,9 @@ def verify_password(password: str, hash_: str) -> bool:
     return check_password_hash(hash_, password)
 
 
-def require_auth(role: Optional[str] = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def require_auth(
+    role: Optional[str] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator enforcing JWT auth and optional role check."""
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:

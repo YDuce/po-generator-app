@@ -21,7 +21,11 @@ bp = Blueprint("shipstation", __name__, url_prefix="/api/v1")
 def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
     settings = get_settings()
     client = cast(redis.Redis, redis.Redis.from_url(settings.redis_url))
-    service = WebhookService(settings.webhook_secrets, client, cast(Session, db.session))
+    service = WebhookService(
+        list(settings.webhook_secrets),
+        client,
+        cast(Session, db.session),
+    )
     creds = Credentials.from_service_account_file(settings.service_account_file)
     sheets = SheetsService(creds, redis_client=client)
     return service, sheets, client

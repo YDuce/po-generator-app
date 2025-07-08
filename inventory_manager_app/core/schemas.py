@@ -43,3 +43,17 @@ class NewReallocationPayload(BaseModel):
         if self.reason not in {"slow-mover", "out-of-stock"}:
             raise ValueError("Invalid reason")
         return self
+
+
+class BatchReallocationPayload(BaseModel):
+    items: list[NewReallocationPayload]
+
+    @model_validator(mode="after")
+    def check_duplicates(self) -> "BatchReallocationPayload":
+        seen = set()
+        for idx, item in enumerate(self.items):
+            key = (item.sku, item.channel_origin, item.reason)
+            if key in seen:
+                raise ValueError(f"Duplicate reallocation at index {idx}: {key}")
+            seen.add(key)
+        return self

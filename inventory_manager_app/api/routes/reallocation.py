@@ -1,6 +1,8 @@
 """Reallocation API routes."""
 
 from flask import Blueprint, Response, jsonify, request
+from typing import cast
+from sqlalchemy.orm import Session
 
 from inventory_manager_app.extensions import db
 from inventory_manager_app.core.services.reallocation_repo import (
@@ -22,7 +24,7 @@ def list_reallocations() -> tuple[Response, int]:
     """Return recorded reallocations with simple pagination."""
     page = int(request.args.get("page", "1"))
     size = int(request.args.get("size", "50"))
-    repo = ReallocationRepository(db.session)
+    repo = ReallocationRepository(cast(Session, db.session))
     items = repo.list_paginated(page=page, size=size)
     data = [
         {
@@ -55,7 +57,7 @@ def create_reallocation() -> tuple[Response, int]:
 
     if not db.session.query(Product).filter_by(sku=data_model.sku).first():
         abort_json(400, "Unknown SKU")
-    repo = ReallocationRepository(db.session)
+    repo = ReallocationRepository(cast(Session, db.session))
     if repo.exists(data_model.sku, data_model.channel_origin, data_model.reason):
         abort_json(409, "Reallocation exists")
     realloc = repo.create(
