@@ -100,6 +100,12 @@ redis-server --daemonize yes
 
 Set `APP_REDIS_URL=redis://localhost:6379/0` before running the application or tests.
 
+### Getting Started
+
+1. `cp .env.example .env`
+2. Fill in any secrets in `.env`.
+3. `docker-compose up` or `flask run`
+
 ## 5. Technical Specifications
 
 ### 5.1 Webhook Authentication & Handling
