@@ -67,7 +67,7 @@ def create_org() -> tuple[Response, int]:
 
 @bp.route("/organisations", methods=["GET"])
 @require_auth("admin")
-def list_orgs() -> tuple[list[dict], int]:
+def list_orgs() -> tuple[Response, int]:
     data = [
         {"id": o.id, "name": o.name, "drive_folder_id": o.drive_folder_id}
         for o in Organisation.query.order_by(Organisation.id).all()

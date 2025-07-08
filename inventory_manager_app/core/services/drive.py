@@ -1,6 +1,6 @@
 """Google Drive management."""
 
-from typing import Any
+from typing import Any, cast
 
 import redis
 from inventory_manager_app.core.config.settings import get_settings
@@ -22,8 +22,9 @@ class DriveService:
             credentials=creds,
             cache_discovery=False,
         )
-        self.redis = redis_client or redis.Redis.from_url(
-            get_settings().redis_url
+        self.redis = cast(
+            redis.Redis,
+            redis_client or redis.Redis.from_url(get_settings().redis_url),
         )
 
     def create_folder(self, name: str, parent_id: str | None = None) -> dict[str, Any]:
@@ -35,6 +36,4 @@ class DriveService:
             metadata["parents"] = [parent_id]
         with self.redis.lock("gapi", timeout=10, blocking_timeout=10):
             resp = self.client.files().create(body=metadata, fields="id").execute()
-        from typing import cast
-
         return cast(dict[str, Any], resp)

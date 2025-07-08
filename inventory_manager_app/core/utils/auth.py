@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 def create_token(payload: dict[str, Any], secret: str, expires_in: int = 86400) -> str:
     now = datetime.now(timezone.utc)
     to_encode = payload | {"exp": now + timedelta(seconds=expires_in), "iat": now}
-    return jwt.encode(to_encode, secret, algorithm="HS256")
+    return str(jwt.encode(to_encode, secret, algorithm="HS256"))
 
 
 def verify_token(token: str, secret: str) -> dict[str, Any]:
@@ -30,12 +30,12 @@ def verify_password(password: str, hash_: str) -> bool:
     return check_password_hash(hash_, password)
 
 
-def require_auth(role: Optional[str] = None) -> Callable:
+def require_auth(role: Optional[str] = None) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorator enforcing JWT auth and optional role check."""
 
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(fn)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             header = request.headers.get("Authorization", "")
             if not header.startswith("Bearer "):
                 abort(401)

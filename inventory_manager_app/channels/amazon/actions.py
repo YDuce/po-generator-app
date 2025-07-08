@@ -1,6 +1,7 @@
 """Amazon channel action stubs that log received events."""
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -9,5 +10,5 @@ class AmazonActions:
     """Example action implementations for Amazon channel."""
 
     @staticmethod
-    def log_event(event: dict) -> None:
+    def log_event(event: dict[str, Any]) -> None:
         logger.info("Amazon event: %s", event)

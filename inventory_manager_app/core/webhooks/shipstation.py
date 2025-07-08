@@ -6,10 +6,12 @@ from datetime import datetime, timezone
 import structlog
 
 from google.oauth2.service_account import Credentials
-from ..services.webhook import WebhookService, SheetsService
+from typing import cast
+from ..services import WebhookService, SheetsService
 from ..utils.validation import abort_json
 from ..config.settings import get_settings
 from ...extensions import db
+from sqlalchemy.orm import Session
 import redis
 
 
@@ -18,8 +20,8 @@ bp = Blueprint("shipstation", __name__, url_prefix="/api/v1")
 
 def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
     settings = get_settings()
-    client = redis.Redis.from_url(settings.redis_url)
-    service = WebhookService(settings.webhook_secrets, client, db.session)
+    client = cast(redis.Redis, redis.Redis.from_url(settings.redis_url))
+    service = WebhookService(settings.webhook_secrets, client, cast(Session, db.session))
     creds = Credentials.from_service_account_file(settings.service_account_file)
     sheets = SheetsService(creds, redis_client=client)
     return service, sheets, client
@@ -32,7 +34,8 @@ def handle_webhook() -> tuple[str, int]:
     if request.content_length and request.content_length > settings.max_payload:
         abort_json(413, "Payload too large")
     key = f"rate:{int(datetime.now(timezone.utc).timestamp())}"
-    if client.incr(key) > 100:
+    count = cast(int, client.incr(key))
+    if count > 100:
         client.expire(key, 1)
         abort_json(429, "Too many requests")
     client.expire(key, 1)

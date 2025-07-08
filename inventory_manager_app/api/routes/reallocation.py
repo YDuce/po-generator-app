@@ -1,6 +1,6 @@
 """Reallocation API routes."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request
 
 from inventory_manager_app.extensions import db
 from inventory_manager_app.core.services.reallocation_repo import (
@@ -18,7 +18,7 @@ bp = Blueprint("reallocation", __name__, url_prefix="/api/v1")
 
 @bp.route("/reallocations", methods=["GET"])
 @require_auth("admin")
-def list_reallocations() -> tuple[dict, int]:
+def list_reallocations() -> tuple[Response, int]:
     """Return recorded reallocations with simple pagination."""
     page = int(request.args.get("page", "1"))
     size = int(request.args.get("size", "50"))
@@ -39,7 +39,7 @@ def list_reallocations() -> tuple[dict, int]:
 
 @bp.route("/reallocations", methods=["POST"])
 @require_auth("admin")
-def create_reallocation() -> tuple[dict, int]:
+def create_reallocation() -> tuple[Response, int]:
     """Create a new reallocation entry if the payload is valid."""
     payload = request.get_json() or {}
     require_fields(

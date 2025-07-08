@@ -1,6 +1,6 @@
 """Auth routes."""
 
-from flask import Blueprint, abort, jsonify, request
+from flask import Blueprint, Response, abort, jsonify, request
 
 from inventory_manager_app.core.config.settings import get_settings
 from inventory_manager_app.core.models import User
@@ -10,7 +10,7 @@ bp = Blueprint("auth", __name__, url_prefix="/api/v1")
 
 
 @bp.route("/login", methods=["POST"])
-def login() -> tuple[dict, int]:
+def login() -> tuple[Response, int]:
     data = request.json or {}
     email = data.get("email")
     password = data.get("password", "")
