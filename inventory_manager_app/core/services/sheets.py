@@ -1,10 +1,9 @@
 """Google Sheets management."""
 
-from typing import Any
+from typing import Any, cast
 
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
-from typing import cast
 import redis
 from inventory_manager_app.core.config.settings import get_settings
 
@@ -21,8 +20,9 @@ class SheetsService:
             credentials=creds,
             cache_discovery=False,
         )
-        self.redis = redis_client or redis.Redis.from_url(
-            get_settings().redis_url
+        self.redis = cast(
+            redis.Redis,
+            redis_client or redis.Redis.from_url(get_settings().redis_url),
         )
 
     def create_spreadsheet(self, name: str) -> dict[str, Any]:

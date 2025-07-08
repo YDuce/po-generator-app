@@ -84,7 +84,7 @@ app/
 
 4. Set up environment variables:
    ```bash
-   cp .env .env
+   cp .env.example .env
    # Edit .env with your configuration
    ```
 

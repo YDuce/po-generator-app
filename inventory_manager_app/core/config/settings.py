@@ -2,11 +2,12 @@
 
 from functools import lru_cache
 from typing import Any
+from pydantic import field_validator
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):  # type: ignore[misc]
+class Settings(BaseSettings):
     """Load configuration from environment."""
 
     model_config = SettingsConfigDict(env_prefix="APP_")
@@ -19,6 +20,13 @@ class Settings(BaseSettings):  # type: ignore[misc]
     webhook_secrets_file: str | None = None
     service_account_file: str = "secrets/service-account.json"
 
+    @field_validator("webhook_secrets", mode="before")
+    @classmethod
+    def _split_secrets(cls, v: list[str] | str) -> list[str]:
+        if isinstance(v, str):
+            return [s for s in v.split(",") if s]
+        return v
+
     def model_post_init(self, __context: Any) -> None:
         if not self.secret_key:
             raise ValueError("APP_SECRET_KEY must not be empty")
@@ -30,8 +38,6 @@ class Settings(BaseSettings):  # type: ignore[misc]
                     ]
             except OSError as exc:
                 raise ValueError("unable to load webhook secrets") from exc
-        elif isinstance(self.webhook_secrets, str):
-            self.webhook_secrets = [s for s in self.webhook_secrets.split(",") if s]
         import os
 
         if not os.path.exists(self.service_account_file):

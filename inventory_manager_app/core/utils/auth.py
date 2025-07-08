@@ -1,7 +1,7 @@
 """JWT helpers."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypeVar, ParamSpec
 
 from flask import abort, g, request
 from functools import wraps
@@ -15,11 +15,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 def create_token(payload: dict[str, Any], secret: str, expires_in: int = 86400) -> str:
     now = datetime.now(timezone.utc)
     to_encode = payload | {"exp": now + timedelta(seconds=expires_in), "iat": now}
-    return jwt.encode(to_encode, secret, algorithm="HS256")
+    return str(jwt.encode(to_encode, secret, algorithm="HS256"))
 
 
 def verify_token(token: str, secret: str) -> dict[str, Any]:
-    return jwt.decode(token, secret, algorithms=["HS256"])
+    decoded = jwt.decode(token, secret, algorithms=["HS256"])  # returns dict[str, Any]
+    assert isinstance(decoded, dict)
+    return decoded
 
 
 def hash_password(password: str) -> str:
@@ -30,12 +32,18 @@ def verify_password(password: str, hash_: str) -> bool:
     return check_password_hash(hash_, password)
 
 
-def require_auth(role: Optional[str] = None) -> Callable:
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def require_auth(
+    role: Optional[str] = None,
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator enforcing JWT auth and optional role check."""
 
-    def decorator(fn: Callable) -> Callable:
+    def decorator(fn: Callable[P, R]) -> Callable[P, R]:
         @wraps(fn)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             header = request.headers.get("Authorization", "")
             if not header.startswith("Bearer "):
                 abort(401)

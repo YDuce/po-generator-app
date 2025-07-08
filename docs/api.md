@@ -445,7 +445,7 @@ Response Codes:
 - 204 Accepted
 - 400 Invalid payload or unknown channel → {"error": "..."}
 - 403 Forbidden → {"error": "Invalid signature"}
-- 413 Payload too large
+- 413 Payload too large (over 1024 bytes)
 - 429 Too many requests → {"error": "Too many requests"}
 - 500 Server error
 ```
