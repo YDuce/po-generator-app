@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-
 from pydantic import BaseModel, EmailStr, model_validator
 
 
@@ -34,13 +33,13 @@ class ReallocationSchema(BaseModel):
     added_date: datetime
 
 
-class NewReallocationPayload(BaseModel):
+class ReallocationCreatePayload(BaseModel):
     sku: str
     channel_origin: str
     reason: str
 
     @model_validator(mode="after")
-    def check_reason(self) -> "NewReallocationPayload":
+    def check_reason(self) -> "ReallocationCreatePayload":
         if self.reason not in {"slow-mover", "out-of-stock"}:
             raise ValueError("Invalid reason")
         return self

@@ -9,7 +9,7 @@ from inventory_manager_app.core.services.reallocation_repo import (
 from inventory_manager_app.core.utils.auth import require_auth
 from inventory_manager_app.core.utils.validation import abort_json, require_fields
 from inventory_manager_app.core.models import Product
-from inventory_manager_app.core.schemas import NewReallocationPayload
+from inventory_manager_app.core.schemas import ReallocationCreatePayload
 
 REASONS = {"slow-mover", "out-of-stock"}
 
@@ -48,7 +48,8 @@ def create_reallocation() -> tuple[dict, int]:
         {"channel_origin": 50, "reason": 255},
     )
     try:
-        data_model = NewReallocationPayload.model_validate(payload)
+
+        data_model = ReallocationCreatePayload.model_validate(payload)
     except Exception as exc:
         abort_json(400, str(exc))
 

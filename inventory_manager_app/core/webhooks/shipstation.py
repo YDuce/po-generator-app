@@ -15,6 +15,8 @@ import redis
 
 bp = Blueprint("shipstation", __name__, url_prefix="/api/v1")
 
+MAX_PAYLOAD_BYTES = 16384
+
 
 def _service() -> tuple[WebhookService, SheetsService, redis.Redis]:
     settings = get_settings()
